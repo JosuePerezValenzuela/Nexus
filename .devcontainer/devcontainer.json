@@ -18,6 +18,7 @@
       ]
     }
   },
+  "runArgs": ["--network=nexus-ai-backend_nexus-network"],
   "remoteUser": "vscode",
   "postCreateCommand": "uv sync" // Se ejecutará al crear el contenedor
 }
