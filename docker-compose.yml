@@ -1,5 +1,9 @@
 name: nexus-ai-backend
 
+networks:
+  nexus-network:
+    driver: bridge
+
 services:
   #Servicio de Base de datos
   db:
@@ -20,6 +24,8 @@ services:
     volumes:
       # Persistencia: Esto guarda los datos en un volumen de docker
       - nexus_postgres_data:/var/lib/postgresql/data
+    networks:
+      - nexus-network
     healthcheck:
       # Verificacion de la BD
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d {POSTGRES_DB}"]
