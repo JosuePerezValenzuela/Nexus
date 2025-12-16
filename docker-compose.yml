@@ -1,0 +1,32 @@
+name: nexus-ai-backend
+
+services:
+  #Servicio de Base de datos
+  db:
+    #Imagen oficial de pgvector (Postgres 16 + extension vectorial)
+    image: pgvector/pgvector:pg16
+    container_name: nexus_db
+    restart: always
+    ports:
+      - "5433:5432"
+    # Lee las variables directamente del .env
+    env_file:
+      - .env
+    environment:
+      # Mapeo de variables: Postgres espera estos nombres especificos
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      # Persistencia: Esto guarda los datos en un volumen de docker
+      - nexus_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # Verificacion de la BD
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d {POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+# Definicion del volumen
+volumes:
+  nexus_postgres_data:
