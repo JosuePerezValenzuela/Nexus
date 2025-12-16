@@ -1,0 +1,40 @@
+[project]
+name = "nexus-ai-backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.124.4",
+    "pydantic-settings>=2.12.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "ruff>=0.14.9",
+]
+
+# ------- CONFIGURACION DE RUFF --------
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+# Reglas a activar:
+# E: pycodestyle (errores basicos de estilo)
+# F: Pyflakes (errores logicos, variables no usadas)
+# I: isort (ordenar importaciones automaticamente)
+# B: flake8-bugbear (encuentra bugs potenciales)
+# UP: pyupgrade (Obliga a usar sintaxis moderna de python 3.12)
+select = ["E", "F", "I", "B", "UP"]
+
+# Reglas a ignorar
+ignore = []
+
+[tool.ruff.format]
+# Usar comillas dobles (estandar en python)
+quote-style = "double"
+# Sangria con espacios, no tabs
+indent-style = "space"

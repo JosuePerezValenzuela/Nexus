@@ -1,0 +1,3 @@
+# Forzar a que todos los archivos de texto usen saltos de línea Linux (LF)
+# Esto evita problemas entre Windows y Docker
+* text=auto eol=lf

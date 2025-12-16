@@ -1,0 +1,23 @@
+{
+  "name": "Nexus AI Backend (uv)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.typeCheckingMode": "strict", 
+        "editor.formatOnSave": true
+      },
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",  // Linter ultra rápido (reemplaza flake8/black)
+        "tamasfe.even-better-toml" // Para leer pyproject.toml
+      ]
+    }
+  },
+  "remoteUser": "vscode",
+  "postCreateCommand": "uv sync" // Se ejecutará al crear el contenedor
+}
