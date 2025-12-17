@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlmodel import Session, create_engine
+from sqlmodel import Session, SQLModel, create_engine
 
 from app.core.config import settings
 
@@ -15,3 +15,10 @@ engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI), echo=True)
 def get_db() -> Generator[Session, None, None]:
     with Session(engine) as session:
         yield session
+
+
+def create_db_and_tables():
+    """Crea las tablas en la BD"""
+    from app.models.knowledge import KnowledgeBase  # noqa: F401
+
+    SQLModel.metadata.create_all(engine)

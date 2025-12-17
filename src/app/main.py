@@ -1,12 +1,26 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference  # type: ignore
 
 from app.core.config import settings
+from app.core.session import create_db_and_tables
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Nexus AI: Inicializando memorias...")
+    create_db_and_tables()
+    print("Tablas de conocimiento listas.")
+    yield
+    print("Nexus AI: Apagando.")
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
+    lifespan=lifespan,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url=None,
     redoc_url=None,
