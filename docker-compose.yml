@@ -32,7 +32,19 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    
+  ollama:
+    image: ollama/ollama:latest
+    container_name: nexus_ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - nexus_ollama_data:/root/.ollama
+    networks:
+      - nexus-network
 
 # Definicion del volumen
 volumes:
   nexus_postgres_data:
+  nexus_ollama_data:
