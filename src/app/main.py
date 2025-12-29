@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference  # type: ignore
 
+from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.session import create_db_and_tables
 
@@ -22,7 +23,6 @@ app = FastAPI(
     version=settings.VERSION,
     lifespan=lifespan,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    docs_url=None,
     redoc_url=None,
 )
 
@@ -36,6 +36,8 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
+app.include_router(api_router, prefix="/api/v1")
+
 
 @app.get("/", tags=["Health"])
 async def root() -> dict[str, str]:
@@ -46,7 +48,7 @@ async def root() -> dict[str, str]:
     }
 
 
-@app.get("/docs", include_in_schema=False)
+@app.get("/docsScalar", include_in_schema=False)
 async def scalar_html():
     return get_scalar_api_reference(
         openapi_url=app.openapi_url,
