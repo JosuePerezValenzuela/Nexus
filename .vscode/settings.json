@@ -8,6 +8,22 @@
     }
   },
 
+  "files.watcherExclude": {
+    "**/node_modules/*/**": true,
+    "**/.venv/**": true,
+    "**/__pycache__/**": true,
+    "**/.pytest_cache/**": true,
+    "**/postgres_data/**": true
+  },
+
+  "search.exclude": {
+    "**/.venv": true,
+    "**/__pycache__": true,
+    "**/postgres_data": true
+  },
+
+  "python.analysis.indexing": true,
+
   "python.analysis.diagnosticSeverityOverrides": {
     "reportUnusedImport": "none",   // Ruff ya se encarga de esto (regla F401)
     "reportUnusedVariable": "none"  // Ruff ya se encarga de esto (regla F841)
