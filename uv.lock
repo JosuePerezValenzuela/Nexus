@@ -536,6 +536,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },
+    { name = "httpx" },
     { name = "pgvector" },
     { name = "psycopg" },
     { name = "pydantic-settings" },
@@ -553,6 +554,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.124.4" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "pgvector", specifier = ">=0.4.2" },
     { name = "psycopg", specifier = ">=3.3.2" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
