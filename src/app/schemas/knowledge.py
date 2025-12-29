@@ -1,14 +1,18 @@
-from pydantic import BaseModel
+from datetime import datetime
+
+from sqlmodel import SQLModel
 
 
-# Este modulo define que esperamos recibir del frontend
-class KnowledgeCreate(BaseModel):
+class KnowledgeCreate(SQLModel):
     title: str
     content: str
     source: str = "user_input"
 
 
-# Este modelo define que le devolvemos la usuario (Respuesta)
-class KnowledgePublic(KnowledgeCreate):
+# Tu clase de respuesta (puedes llamarla Public o Read, como prefieras)
+class KnowledgeRead(SQLModel):
     id: int
-    created_at: str  # La fecha como string
+    title: str
+    content: str
+    source: str
+    created_at: datetime
