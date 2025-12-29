@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
 
+from pgvector.sqlalchemy import Vector  # type: ignore
+from sqlalchemy import Column
 from sqlmodel import Field, SQLModel  # type: ignore
 
 
@@ -21,3 +23,5 @@ class KnowledgeBase(SQLModel, table=True):
     source: str | None = Field(default="user_input")
 
     created_at: datetime = Field(default_factory=get_utc_now)
+
+    embedding: list[float] | None = Field(default=None, sa_column=Column(Vector(4096)))

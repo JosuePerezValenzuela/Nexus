@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, text
 
 from app.core.config import settings
 
@@ -20,5 +20,10 @@ def get_db() -> Generator[Session, None, None]:
 def create_db_and_tables():
     """Crea las tablas en la BD"""
     from app.models.knowledge import KnowledgeBase  # noqa: F401
+
+    # Esto es codigo SQL puro que indica activar pgvector
+    with engine.connect() as connection:
+        connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        connection.commit()
 
     SQLModel.metadata.create_all(engine)
