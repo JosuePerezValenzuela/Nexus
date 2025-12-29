@@ -1,27 +1,39 @@
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.models.knowledge import KnowledgeBase
-from app.schemas.knowledge import KnowledgeCreate
+from app.services.llm_service import llm_service
 
 
 class KnowledgeService:
     # Recibe una sesion de BD y datos
     def create_new_document(
-        self, session: Session, item_in: KnowledgeCreate
+        self, session: Session, document_data: KnowledgeBase
     ) -> KnowledgeBase:
+        """
+        Crea un documento, genera su vector con IA y lo guarda en Postgres.
+        """
         # 1. Aqui iria logica extra si existiera
 
-        # 2. Convertir Schema -> Modelo
-        knowledge_item = KnowledgeBase.model_validate(item_in)
+        # Unimos titulo y contenido para que el vector tenga mas contexto
+        full_text = f"{document_data.title}. {document_data.content}"
 
-        # 3. Guardamos
-        session.add(knowledge_item)
+        # Generamos el vector, llamando a ollama y devolviendo la lista de floats
+        vector = llm_service.get_embedding(full_text)
+
+        # Asignar el vector al objeto
+        document_data.embedding = vector
+
+        # Guardamos en la BD
+        session.add(document_data)
         session.commit()
-        session.refresh(knowledge_item)
+        session.refresh(document_data)
 
-        # 4. Aqui es donde en el futuro llamaremos a la IA para embeddings
+        return document_data
 
-        return knowledge_item
+    def get_all_documents(self, session: Session) -> list[KnowledgeBase]:
+        statement = select(KnowledgeBase)
+        results = session.exec(statement)
+        return list(results.all())
 
 
 knowledge_service = KnowledgeService()
