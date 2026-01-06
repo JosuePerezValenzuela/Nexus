@@ -28,23 +28,48 @@ services:
       - nexus-network
     healthcheck:
       # Verificacion de la BD
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d {POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
-    
-  ollama:
-    image: ollama/ollama:latest
-    container_name: nexus_ollama
-    restart: always
-    ports:
-      - "11434:11434"
+  
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: nexus_vllm
+    entrypoint: /bin/bash
+    runtime: nvidia
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+      - VLLM_API_KEY=${VLLM_API_KEY}
     volumes:
-      - nexus_ollama_data:/root/.ollama
+      - ~/.cache/huggingface:/root/.cache/huggingface
+      - /usr/lib/wsl:/usr/lib/wsl
+    ports:
+      - "8001:8000"
+    command: |
+      -c "
+      echo '🔍 Buscando libcuda.so.1...'
+      LIBCUDA=$$(find /usr/lib/wsl -name 'libcuda.so.1' | head -n 1)
+      if [ -z \"$$LIBCUDA\" ]; then echo '❌ ERROR: No libcuda'; exit 1; fi
+      echo \"✅ Encontrado: $$LIBCUDA\"
+      mkdir -p /usr/local/lib/wsl_fix
+      ln -s \"$$LIBCUDA\" /usr/local/lib/wsl_fix/libcuda.so
+      ln -s \"$$LIBCUDA\" /usr/local/lib/wsl_fix/libcuda.so.1
+      export LD_LIBRARY_PATH=/usr/local/lib/wsl_fix:$$LD_LIBRARY_PATH
+      
+      echo '🚀 Arrancando Llama 3.1...'
+      python3 -m vllm.entrypoints.openai.api_server --model neuralmagic/Meta-Llama-3.1-8B-Instruct-FP8 --gpu-memory-utilization 0.90 --max-model-len 8192 --dtype auto --api-key $${VLLM_API_KEY}
+      "
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     networks:
       - nexus-network
 
 # Definicion del volumen
 volumes:
   nexus_postgres_data:
-  nexus_ollama_data:

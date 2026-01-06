@@ -18,8 +18,9 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
 
     # Variables de IA
-    OLLAMA_HOST: str
-    OLLAMA_MODEL: str
+    HF_TOKEN: str
+    LLM_HOST: str
+    VLLM_API_KEY: str
 
     # computed_field calcula la URL automaticamente basandonos en los campos anteriores
     @computed_field
