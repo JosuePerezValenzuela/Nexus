@@ -1,55 +1,43 @@
-import httpx
-from fastapi import HTTPException
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 from app.core.config import settings
 
 
 class LLMService:
-    EMBEDDING_ENDPOINT = "/api/embeddings"
+    """
+    Servicio de infraestructura:
+    Su unica responsabilidad es proveer instancias configuradas del LLM y Embeddings
+    """
 
     def __init__(self):
-        # Lectura de variables que definimos en config.py y .env
-        self.ollama_host = settings.OLLAMA_HOST
-        self.model = settings.OLLAMA_MODEL
+        # Lectura de variables de entorno
+        self.api_base = settings.LLM_HOST
+        self.api_key = SecretStr(settings.VLLM_API_KEY)
+        self.model_name = settings.LLM_MODEL_NAME
 
-    def get_embedding(self, text: str) -> list[float]:
+        # Orquestador
+        self.llm = ChatOpenAI(
+            model=self.model_name,
+            base_url=self.api_base,
+            api_key=self.api_key,
+            temperature=0.7,
+            streaming=True,
+            model_kwargs={"max_tokens": 8192},
+        )
+
+        # Embeddings
+        self.embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_kwargs={"device": "cpu"},
+        )
+
+    async def get_embedding(self, text: str) -> list[float]:
         """
-        Envia texto a ollama y recibe su representacion vectorial
+        Genera vectores para RAG
         """
-        try:
-            # Timeout = 60
-            with httpx.Client(timeout=60.0) as client:
-                response = client.post(
-                    f"{self.ollama_host}{self.EMBEDDING_ENDPOINT}",
-                    json={"model": self.model, "prompt": text},
-                )
-
-                # Si ollama no devuelve error
-                if response.status_code != 200:
-                    raise HTTPException(
-                        status_code=500,
-                        detail=f"Ollama Error ({response.status_code}):{response.text}",
-                    )
-
-                # Extraemos el resultado
-                data = response.json()
-
-                # Validamos
-                if "embedding" not in data:
-                    raise HTTPException(
-                        status_code=500,
-                        detail="La respuesta de Ollama no contine vectores.",
-                    )
-
-                return data["embedding"]
-
-        except httpx.RequestError as e:
-            # Si no se puede llegar a la ruta
-            raise HTTPException(
-                status_code=503,
-                detail=f"No se conecto con el modelo {self.ollama_host},Error:{str(e)}",
-            ) from e
+        return await self.embeddings.aembed_query(text)
 
 
-# Instancia unica (Singleton) para usar en toda la app
 llm_service = LLMService()
