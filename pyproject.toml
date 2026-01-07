@@ -7,11 +7,13 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.124.4",
     "langchain>=1.2.0",
+    "langchain-huggingface>=1.2.0",
     "langchain-openai>=1.1.6",
     "pgvector>=0.4.2",
     "psycopg>=3.3.2",
     "pydantic-settings>=2.12.0",
     "scalar-fastapi>=1.5.0",
+    "sentence-transformers>=5.2.0",
     "sqlmodel>=0.0.27",
 ]
 
