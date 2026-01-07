@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     HF_TOKEN: str
     LLM_HOST: str
     VLLM_API_KEY: str
+    LLM_MODEL_NAME: str
 
     # computed_field calcula la URL automaticamente basandonos en los campos anteriores
     @computed_field
