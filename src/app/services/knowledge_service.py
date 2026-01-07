@@ -6,7 +6,7 @@ from app.services.llm_service import llm_service
 
 class KnowledgeService:
     # Recibe una sesion de BD y datos
-    def create_new_document(
+    async def create_new_document(
         self, session: Session, document_data: KnowledgeBase
     ) -> KnowledgeBase:
         """
@@ -18,7 +18,7 @@ class KnowledgeService:
         full_text = f"{document_data.title}. {document_data.content}"
 
         # Generamos el vector, llamando a ollama y devolviendo la lista de floats
-        vector = llm_service.get_embedding(full_text)
+        vector = await llm_service.get_embedding(full_text)
 
         # Asignar el vector al objeto
         document_data.embedding = vector
