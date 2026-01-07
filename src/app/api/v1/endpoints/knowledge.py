@@ -17,14 +17,14 @@ SessionDep = Annotated[Session, Depends(get_db)]
 # response_model: Lo que ve el cliente (JSON filtrado)
 # -> KnowledgeBase: Lo que devuelve la función internamente (Objeto DB completo)
 @router.post("/", response_model=KnowledgeRead)
-def create_knowledge(
+async def create_knowledge(
     *, session: SessionDep, item: KnowledgeCreate
 ) -> KnowledgeBase:  # 👈 AQUI: Especificamos que devolvemos un objeto de base de datos
     """
     Recibe un documento, lo vectoriza y lo guarda.
     """
     db_obj = KnowledgeBase.model_validate(item)
-    return knowledge_service.create_new_document(session, db_obj)
+    return await knowledge_service.create_new_document(session, db_obj)
 
 
 # 2. GET
