@@ -58,7 +58,7 @@ services:
       export LD_LIBRARY_PATH=/usr/local/lib/wsl_fix:$$LD_LIBRARY_PATH
       
       echo '🚀 Arrancando Llama 3.1...'
-      python3 -m vllm.entrypoints.openai.api_server --model neuralmagic/Meta-Llama-3.1-8B-Instruct-FP8 --gpu-memory-utilization 0.90 --max-model-len 8192 --dtype auto --api-key $${VLLM_API_KEY}
+      python3 -m vllm.entrypoints.openai.api_server --model neuralmagic/Meta-Llama-3.1-8B-Instruct-FP8 --gpu-memory-utilization 0.90 --max-model-len 8192 --dtype auto --api-key $${VLLM_API_KEY} --enable-auto-tool-choice --tool-call-parser llama3_json
       "
     deploy:
       resources:
