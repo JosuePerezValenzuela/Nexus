@@ -1,8 +1,11 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import knowledge  # 👈 1. Importar el archivo nuevo
+from app.api.v1.endpoints import agent, knowledge  # 1. Importar archivos nuevos
 
 api_router = APIRouter()
 
-# 2. Incluir el router de knowledge
+# Incluir el router de knowledge
 api_router.include_router(knowledge.router, prefix="/knowledge", tags=["knowledge"])
+
+# Inclusion de las rutas de agentes
+api_router.include_router(agent.router, prefix="/agent", tags=["agent"])
