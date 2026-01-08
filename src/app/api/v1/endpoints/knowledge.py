@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 from sqlmodel import Session
 
 from app.api.deps import get_db
@@ -36,3 +36,12 @@ def read_knowledge(
     Obtiene todos los documentos de la base de conocimiento.
     """
     return knowledge_service.get_all_documents(session)
+
+
+# 3. Post para subir PDF
+@router.post("/upload-pdf")
+async def upload_pdf(session: SessionDep, file: UploadFile = File(...)):
+    """
+    Sube un PDF, lo divide en fragmentos y lo guarda en la base vetorial
+    """
+    return await knowledge_service.proccess_pdf(session, file)
