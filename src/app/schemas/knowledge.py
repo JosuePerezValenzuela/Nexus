@@ -23,3 +23,11 @@ class PDFResponse(BaseModel):
     filename: str
     message: str
     chunks_created: int
+
+
+# Resultado para el endpoint de busqueda /search/
+class DocumentResponse(BaseModel):
+    id: int
+    title: str
+    content: str
+    source: str
