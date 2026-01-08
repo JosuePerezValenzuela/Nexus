@@ -8,6 +8,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlmodel import Session, select
 
 from app.models.knowledge import KnowledgeBase
+from app.schemas.knowledge import PDFResponse
 from app.services.llm_service import llm_service
 
 
@@ -42,7 +43,7 @@ class KnowledgeService:
         results = session.exec(statement)
         return list(results.all())
 
-    async def proccess_pdf(self, session: Session, file: UploadFile):
+    async def proccess_pdf(self, session: Session, file: UploadFile) -> PDFResponse:
         """
         Recibe un PDF, lo guarda temporalmente, lo trocea y vectoriza cada parte
         """
@@ -87,10 +88,11 @@ class KnowledgeService:
                 session.add(new_chunk)
 
             session.commit()
-            return {
-                "message": "PDF procesado exitosamente. \n"
-                f"Se crearon {len(splits)} fragmentos de conocimiento."
-            }
+            return PDFResponse(
+                filename=safe_filename,
+                message="PDF procesado exitosamente.",
+                chunks_created=len(splits),
+            )
 
         finally:
             # Limpieza del archivo temporal

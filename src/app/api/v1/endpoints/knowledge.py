@@ -5,7 +5,7 @@ from sqlmodel import Session
 
 from app.api.deps import get_db
 from app.models.knowledge import KnowledgeBase
-from app.schemas.knowledge import KnowledgeCreate, KnowledgeRead
+from app.schemas.knowledge import KnowledgeCreate, KnowledgeRead, PDFResponse
 from app.services.knowledge_service import knowledge_service
 
 router = APIRouter()
@@ -39,8 +39,8 @@ def read_knowledge(
 
 
 # 3. Post para subir PDF
-@router.post("/upload-pdf")
-async def upload_pdf(session: SessionDep, file: UploadFile = File(...)):
+@router.post("/upload-pdf", response_model=PDFResponse)
+async def upload_pdf(session: SessionDep, file: UploadFile = File(...)) -> PDFResponse:
     """
     Sube un PDF, lo divide en fragmentos y lo guarda en la base vetorial
     """
