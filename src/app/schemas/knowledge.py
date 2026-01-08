@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from pydantic import BaseModel
 from sqlmodel import SQLModel
 
 
@@ -16,3 +17,9 @@ class KnowledgeRead(SQLModel):
     content: str
     source: str
     created_at: datetime
+
+
+class PDFResponse(BaseModel):
+    filename: str
+    message: str
+    chunks_created: int
