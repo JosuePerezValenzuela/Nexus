@@ -50,6 +50,23 @@ select = ["E", "F", "I", "B", "UP"]
 # Reglas a ignorar
 ignore = []
 
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.params.Depends",
+    "fastapi.Query",
+    "fastapi.params.Query",
+    "fastapi.Path",
+    "fastapi.params.Path",
+    "fastapi.Body",
+    "fastapi.params.Body",
+    "fastapi.File",
+    "fastapi.params.File",
+    "fastapi.Header",
+    "fastapi.params.Header",
+    "fastapi.Security",
+]
+
 [tool.ruff.format]
 # Usar comillas dobles (estandar en python)
 quote-style = "double"
