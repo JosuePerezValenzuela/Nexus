@@ -5,7 +5,12 @@ from sqlmodel import Session
 
 from app.api.deps import get_db
 from app.models.knowledge import KnowledgeBase
-from app.schemas.knowledge import KnowledgeCreate, KnowledgeRead, PDFResponse
+from app.schemas.knowledge import (
+    DocumentResponse,
+    KnowledgeCreate,
+    KnowledgeRead,
+    PDFResponse,
+)
 from app.services.knowledge_service import knowledge_service
 
 router = APIRouter()
@@ -45,3 +50,17 @@ async def upload_pdf(session: SessionDep, file: UploadFile = File(...)) -> PDFRe
     Sube un PDF, lo divide en fragmentos y lo guarda en la base vetorial
     """
     return await knowledge_service.proccess_pdf(session, file)
+
+
+# 4. Post para obtener los vectores mas parecidos a lo enviado
+@router.post("/search/", response_model=list[DocumentResponse])
+async def search_knowledge(
+    query: str,
+    session: SessionDep,
+    limit: int = 5,
+) -> list[KnowledgeBase]:
+    """
+    Endpoint temporal para probar la busqueda vectorial (Recall)
+    Busca los N fragmentos mas parecidos a la consulta
+    """
+    return await knowledge_service.search_similarity(session, query, limit)

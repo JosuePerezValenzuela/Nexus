@@ -99,5 +99,24 @@ class KnowledgeService:
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
 
+    async def search_similarity(
+        self, session: Session, query: str, k: int = 3
+    ) -> list[KnowledgeBase]:
+        """
+        Genera el embedding de la pregunta y busca coincidencias en Postgres.
+        """
+        # Vectorizamos el texto de entrada
+        query_vector = await llm_service.get_embedding(query)
+
+        # Busqueda semantica usando pgvector
+        statement = (
+            select(KnowledgeBase)
+            .order_by(KnowledgeBase.embedding.cosine_distance(query_vector))  # type: ignore
+            .limit(k)
+        )
+
+        results = session.exec(statement)
+        return list(results.all())
+
 
 knowledge_service = KnowledgeService()
