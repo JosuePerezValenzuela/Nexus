@@ -8,9 +8,14 @@ from app.services.knowledge_service import knowledge_service
 @tool
 async def search_knowledge_base(query: str) -> str:
     """
-    Herramienta para buscar informacion especifica en la base de conocimiento interna.
-    Usa esta herramienta cuando el usuario pregunte sobre informacion local (Bolivia)
-    o documentos subidos
+    Útil SOLAMENTE para buscar datos factuales en documentos PDF, manuales o estudios en
+    Bolivia que han sido subidos.
+
+    NO uses esta herramienta para:
+    - Conversación casual.
+
+    Args:
+        query: La frase exacta a buscar en los documentos.
     """
     # Creacion de una sesion sincrona dedicada para la tool
     with Session(engine) as session:
@@ -23,6 +28,6 @@ async def search_knowledge_base(query: str) -> str:
         # Formateo de la respuesta para el agente
         response_text = "Informacion encontrada:\n\n"
         for doc in results:
-            response_text += f"--- Fuente: {doc.source} ---\n{doc.content}\n\n"
+            response_text += f"--- Fuente: {doc.title} ---\n{doc.content}\n\n"
 
         return response_text
