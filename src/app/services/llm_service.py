@@ -24,7 +24,7 @@ class LLMService:
             api_key=self.api_key,
             temperature=0.7,
             streaming=True,
-            model_kwargs={"max_tokens": 8192},
+            model_kwargs={"max_tokens": 2048},
         )
 
         # Embeddings
