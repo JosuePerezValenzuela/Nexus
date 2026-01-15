@@ -108,50 +108,59 @@ class KnowledgeService:
         1. Recuperacion amplia (Vectores) -> Trae candidatos.
         2. Reranking (FlashRank) -> Ordena por relevancia real
         """
-        # Recuperacion amplia de documentos
-        query_vector = await llm_service.get_embedding(query)
+        # Generacion de multiqueries
+        print(f"🤔 Generando sinónimos para: '{query}'...")
+        search_queries = await llm_service.generate_search_queries(query)
+        print(f"🔍 Buscando por: {search_queries}")
 
-        candidates_limit = k * 4
+        # Recuperacion masiva
+        all_candidates: list[KnowledgeBase] = []
+        seen_ids: set[Any] = set()
 
-        # Busqueda semantica
-        statement = (
-            select(KnowledgeBase)
-            .order_by(KnowledgeBase.embedding.cosine_distance(query_vector))  # type: ignore
-            .limit(candidates_limit)
-        )
+        for q in search_queries:
+            q_vector = await llm_service.get_embedding(q)
 
-        candidates = session.exec(statement).all()
+            statement = (
+                select(KnowledgeBase)
+                .order_by(KnowledgeBase.embedding.cosine_distance(q_vector))  # type: ignore
+                .limit(k * 2)
+            )
 
-        if not candidates:
+            results = session.exec(statement).all()
+
+            for doc in results:
+                if doc.id not in seen_ids:
+                    all_candidates.append(doc)
+                    seen_ids.add(doc.id)
+
+        if not all_candidates:
             return []
 
-        # Rerank con flashRank
         passages: list[dict[str, Any]] = []
         candidate_map: dict[str, KnowledgeBase] = {}
 
-        for doc in candidates:
+        for doc in all_candidates:
             doc_id = str(doc.id)
             candidate_map[doc_id] = doc
-
             passages.append(
-                {
-                    "id": doc_id,
-                    "text": doc.content,
-                    "meta": {"title": doc.title, "source": doc.source},
-                }
+                {"id": doc_id, "text": doc.content, "meta": {"title": doc.title}}
             )
 
-        print("Ejecutando Reranking")
+        print(f"⚡️ Reranking {len(passages)} documentos candidatos...")
 
+        # 4. RERANKING
+        # Usamos TinyBERT que ya probamos que funciona
         ranker = Ranker(model_name="ms-marco-TinyBERT-L-2-v2", cache_dir="opt")
 
+        # OJO: Aquí el Reranker compara los documentos encontrados contra
+        # la pregunta ORIGINAL del usuario. Él decide cuál es la mejor respuesta.
         reranked_results = ranker.rerank(RerankRequest(query=query, passages=passages))
 
+        # 5. RETORNAR LOS TOP K
         final_docs: list[KnowledgeBase] = []
-
         for result in reranked_results[:k]:
-            doc_id = result["id"]
-
+            # Casting y recuperación segura
+            doc_id = str(result["id"])
             original_doc = candidate_map.get(doc_id)
             if original_doc:
                 final_docs.append(original_doc)
