@@ -3,7 +3,8 @@ import shutil
 from typing import Any, cast
 
 from fastapi import UploadFile
-from langchain_community.document_loaders import PyPDFLoader
+from flashrank import Ranker, RerankRequest  # type: ignore
+from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlmodel import Session, select
 
@@ -59,12 +60,12 @@ class KnowledgeService:
 
         try:
             # Carga del pdf
-            loader = PyPDFLoader(temp_file_path)
+            loader = PyMuPDFLoader(temp_file_path)
             docs = loader.load()  # Extrae el texto pagina por pagina
 
             # Chunking
             text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1000, chunk_overlap=200
+                chunk_size=1200, chunk_overlap=300
             )
             splits = text_splitter.split_documents(docs)
 
@@ -100,23 +101,62 @@ class KnowledgeService:
                 os.remove(temp_file_path)
 
     async def search_similarity(
-        self, session: Session, query: str, k: int = 3
+        self, session: Session, query: str, k: int = 5
     ) -> list[KnowledgeBase]:
         """
-        Genera el embedding de la pregunta y busca coincidencias en Postgres.
+        Busqueda en 2 pasos:
+        1. Recuperacion amplia (Vectores) -> Trae candidatos.
+        2. Reranking (FlashRank) -> Ordena por relevancia real
         """
-        # Vectorizamos el texto de entrada
+        # Recuperacion amplia de documentos
         query_vector = await llm_service.get_embedding(query)
 
-        # Busqueda semantica usando pgvector
+        candidates_limit = k * 4
+
+        # Busqueda semantica
         statement = (
             select(KnowledgeBase)
             .order_by(KnowledgeBase.embedding.cosine_distance(query_vector))  # type: ignore
-            .limit(k)
+            .limit(candidates_limit)
         )
 
-        results = session.exec(statement)
-        return list(results.all())
+        candidates = session.exec(statement).all()
+
+        if not candidates:
+            return []
+
+        # Rerank con flashRank
+        passages: list[dict[str, Any]] = []
+        candidate_map: dict[str, KnowledgeBase] = {}
+
+        for doc in candidates:
+            doc_id = str(doc.id)
+            candidate_map[doc_id] = doc
+
+            passages.append(
+                {
+                    "id": doc_id,
+                    "text": doc.content,
+                    "meta": {"title": doc.title, "source": doc.source},
+                }
+            )
+
+        print("Ejecutando Reranking")
+
+        ranker = Ranker(model_name="ms-marco-TinyBERT-L-2-v2", cache_dir="opt")
+
+        reranked_results = ranker.rerank(RerankRequest(query=query, passages=passages))
+
+        final_docs: list[KnowledgeBase] = []
+
+        for result in reranked_results[:k]:
+            doc_id = result["id"]
+
+            original_doc = candidate_map.get(doc_id)
+            if original_doc:
+                final_docs.append(original_doc)
+
+        return final_docs
 
 
 knowledge_service = KnowledgeService()
