@@ -1,5 +1,7 @@
+import os
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference  # type: ignore
@@ -17,6 +19,23 @@ async def lifespan(app: FastAPI):
     yield
     print("Nexus AI: Apagando.")
 
+
+load_dotenv()
+
+print("--- DIAGNÓSTICO LANGSMITH ---")
+key = os.getenv("LANGCHAIN_API_KEY")
+tracing = os.getenv("LANGCHAIN_TRACING_V2")
+
+if key:
+    print(f"✅ API Key cargada: {key[:5]}...")  # Solo muestra el inicio por seguridad
+else:
+    print("❌ ERROR: No se encontró LANGCHAIN_API_KEY")
+
+if tracing == "true":
+    print("✅ Tracing activado")
+else:
+    print(f"❌ Tracing NO activo (Valor: {tracing})")
+print("-----------------------------")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
