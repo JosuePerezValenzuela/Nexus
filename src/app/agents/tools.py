@@ -8,11 +8,10 @@ from app.services.knowledge_service import knowledge_service
 @tool
 async def search_knowledge_base(query: str) -> str:
     """
-    Útil SOLAMENTE para buscar datos factuales en documentos PDF, manuales o estudios en
-    Bolivia que han sido subidos.
+    Usala para buscar informacion clinica oficial, informacion nutricional o
+    lista de medicamentos
 
-    NO uses esta herramienta para:
-    - Conversación casual.
+    No la uses para respuestas que no requieran de conocimiento medico
 
     Args:
         query: La frase exacta a buscar en los documentos.
