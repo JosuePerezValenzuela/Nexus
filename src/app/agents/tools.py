@@ -26,7 +26,16 @@ async def search_knowledge_base(query: str) -> str:
 
         # Formateo de la respuesta para el agente
         response_text = "Informacion encontrada:\n\n"
-        for doc in results:
-            response_text += f"--- Fuente: {doc.title} ---\n{doc.content}\n\n"
+        for i, result in enumerate(results, 1):
+            source = getattr(result, "source", "Desconocido")
+            title = getattr(result, "title", "Sin titulo")
+
+            response_text += (
+                f"--- 📄 FRAGMENTO {i} ---\n"
+                f"**Fuente:** {source}\n"
+                f"**Sección:** {title}\n"
+                f"**Contenido:**\n"
+                f"> {result.content.strip()}\n\n"  # El '>' crea una cita bloque visual
+            )
 
         return response_text
