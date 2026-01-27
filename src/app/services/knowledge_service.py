@@ -1,5 +1,7 @@
+import logging
 import os
 import shutil
+import tempfile
 from typing import Any, cast
 
 from fastapi import UploadFile
@@ -8,12 +10,23 @@ from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlmodel import Session, select
 
+from app.core.config import settings
 from app.models.knowledge import KnowledgeBase
 from app.schemas.knowledge import PDFResponse
 from app.services.llm_service import llm_service
 
+# Configuracion del Logger
+logger = logging.getLogger(__name__)
+
 
 class KnowledgeService:
+    def __init__(self):
+        # OPTIMIZACION: Cargamos el modelo UNA sola vez al iniciar la app
+        # Esto ahorra milisegundos valiosos en cada busqueda.
+        logger.info(f"Cargando modelo Raranker: {settings.RAG_RERANKER_MODEL}...")
+        self.ranker = Ranker(model_name=settings.RAG_RERANKER_MODEL, cache_dir="opt")
+        logger.info("Modelo Reranker listo en memoria.")
+
     # Recibe una sesion de BD y datos
     async def create_new_document(
         self, session: Session, document_data: KnowledgeBase
@@ -48,28 +61,26 @@ class KnowledgeService:
         """
         Recibe un PDF, lo guarda temporalmente, lo trocea y vectoriza cada parte
         """
-        temp_dir = "temp_uploads"
-        os.makedirs(temp_dir, exist_ok=True)
+        suffix = os.path.splitext(file.filename or "")[1]
 
-        safe_filename = file.filename or "temp_document.pdf"
-
-        temp_file_path = os.path.join(temp_dir, safe_filename)
-
-        with open(temp_file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
+            shutil.copyfileobj(file.file, tmp_file)
+            temp_path = tmp_file.name
 
         try:
             # Carga del pdf
-            loader = PyMuPDFLoader(temp_file_path)
+            logger.info(f"Procesando PDF: {file.filename}")
+            loader = PyMuPDFLoader(temp_path)
             docs = loader.load()  # Extrae el texto pagina por pagina
 
             # Chunking
             text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1200, chunk_overlap=300
+                chunk_size=settings.RAG_CHUNK_SIZE,
+                chunk_overlap=settings.RAG_CHUNK_OVERLAP,
             )
             splits = text_splitter.split_documents(docs)
 
-            print(f"📄 Procesando PDF: {len(splits)} fragmentos generados.")
+            print(f"Generados {len(splits)} chunks para {file.filename}")
 
             # Procesamiento de cada fragmento
             for split in splits:
@@ -77,12 +88,11 @@ class KnowledgeService:
 
                 meta = cast(dict[str, Any], split.metadata)  # type: ignore
 
-                page_num = meta.get("page", 0)
                 # Creacion del objeto a guardar en la BD
                 new_chunk = KnowledgeBase(
-                    title=f"{file.filename} - Pag {page_num}",
+                    title=f"{file.filename} - Pag {meta.get('page', 0)}",
                     content=split.page_content,
-                    source=safe_filename,
+                    source=file.filename or "unknown",
                     embedding=vector,
                 )
 
@@ -90,15 +100,18 @@ class KnowledgeService:
 
             session.commit()
             return PDFResponse(
-                filename=safe_filename,
+                filename=file.filename or "unknown",
                 message="PDF procesado exitosamente.",
                 chunks_created=len(splits),
             )
 
+        except Exception as e:
+            logger.error(f"Error procesando PDF: {str(e)}")
+            raise e
         finally:
             # Limpieza del archivo temporal
-            if os.path.exists(temp_file_path):
-                os.remove(temp_file_path)
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
     async def search_similarity(
         self, session: Session, query: str, k: int = 5
@@ -109,9 +122,9 @@ class KnowledgeService:
         2. Reranking (FlashRank) -> Ordena por relevancia real
         """
         # Generacion de multiqueries
-        print(f"🤔 Generando sinónimos para: '{query}'...")
+        logger.info(f"Query original: {query}")
         search_queries = await llm_service.generate_search_queries(query)
-        print(f"🔍 Buscando por: {search_queries}")
+        logger.debug(f"Queries generadas: {search_queries}")
 
         # Recuperacion masiva
         all_candidates: list[KnowledgeBase] = []
@@ -146,24 +159,22 @@ class KnowledgeService:
                 {"id": doc_id, "text": doc.content, "meta": {"title": doc.title}}
             )
 
-        print(f"⚡️ Reranking {len(passages)} documentos candidatos...")
+        logger.info(f"Reranking {len(passages)} candidatos...")
 
         # 4. RERANKING
-        # Usamos TinyBERT que ya probamos que funciona
-        ranker = Ranker(model_name="ms-marco-TinyBERT-L-2-v2", cache_dir="opt")
-
         # OJO: Aquí el Reranker compara los documentos encontrados contra
         # la pregunta ORIGINAL del usuario. Él decide cuál es la mejor respuesta.
-        reranked_results = ranker.rerank(RerankRequest(query=query, passages=passages))
+        reranked_results = self.ranker.rerank(
+            RerankRequest(query=query, passages=passages)
+        )  # noqa: E501
 
         # 5. RETORNAR LOS TOP K
         final_docs: list[KnowledgeBase] = []
         for result in reranked_results[:k]:
             # Casting y recuperación segura
             doc_id = str(result["id"])
-            original_doc = candidate_map.get(doc_id)
-            if original_doc:
-                final_docs.append(original_doc)
+            if doc := candidate_map.get(doc_id):
+                final_docs.append(doc)
 
         return final_docs
 
