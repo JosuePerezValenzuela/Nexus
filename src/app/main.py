@@ -10,6 +10,8 @@ from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.session import create_db_and_tables
 
+IS_PRODUCTION = settings.ENVIRONMENT == "production"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,7 +43,8 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     lifespan=lifespan,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    openapi_url=None if IS_PRODUCTION else f"{settings.API_V1_STR}/openapi.json",
+    docs_url=None if IS_PRODUCTION else "/docs",
     redoc_url=None,
 )
 
@@ -49,9 +52,13 @@ app = FastAPI(
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
+        # 1. ¿Quien puede entrar? (Lista de dominios permitidos)
         allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+        # 2. ¿Permitir cookies/credenciales) (Generalmente True para FrontEnd)
         allow_credentials=True,
+        # 3. ¿Que verbos? (GET, POST, PUT, DELETE....)
         allow_methods=["*"],
+        # 4. ¿Que headers? (Auth tokens, etc)
         allow_headers=["*"],
     )
 
@@ -67,12 +74,14 @@ async def root() -> dict[str, str]:
     }
 
 
-@app.get("/docsScalar", include_in_schema=False)
-async def scalar_html():
-    return get_scalar_api_reference(
-        openapi_url=app.openapi_url,
-        title=app.title,
-    )
+if not IS_PRODUCTION:
+
+    @app.get("/docsScalar", include_in_schema=False)
+    async def scalar_html():
+        return get_scalar_api_reference(
+            openapi_url=app.openapi_url,
+            title=app.title,
+        )
 
 
 def start():
