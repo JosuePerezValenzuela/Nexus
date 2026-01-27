@@ -1,3 +1,4 @@
+from functools import lru_cache  # FastAPI Way, crea la config una vez y la reutiliza
 from typing import Literal
 
 from pydantic import PostgresDsn, computed_field
@@ -7,8 +8,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     # Configuracion general}
     API_V1_STR: str = "/api/v1"
-    PROJECT_NAME: str
-    VERSION: str
+    PROJECT_NAME: str = "Nexus Health"
+    VERSION: str = "0.1.0"
 
     # Configuracion de Base de datos
     POSTGRES_SERVER: str
@@ -52,5 +53,10 @@ class Settings(BaseSettings):
     )
 
 
+@lru_cache
+def get_settings():
+    return Settings()  # type: ignore
+
+
 # Instaciamos la configuracion una sola vez para importarla donde sea
-settings = Settings()  # type: ignore
+settings = get_settings()
