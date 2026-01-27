@@ -4,9 +4,22 @@ from sqlmodel import Session, SQLModel, create_engine, text
 
 from app.core.config import settings
 
+IS_PRODCUTION = settings.ENVIRONMENT == "production"
+
 # Creacion del motor
 # connection_args es necesario para que psycopg funcione bien con JSONB
-engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI), echo=True)
+# En produccion, ajustamos pool_size y pool_pre_ping
+engine = create_engine(
+    str(settings.SQLALCHEMY_DATABASE_URI),
+    # echo = True solo en local para ver SQL logs en consola
+    echo=(settings.ENVIRONMENT == "local"),
+    # pool_pre_ping = True: Verifica que la conexion funcione antes de usarla
+    pool_pre_ping=True,
+    # pool_size: Cuantas conexiones mantenemos vivas en RAM (Default 5)
+    pool_size=10,
+    # max_overflow: Cuantas extra permitimos si el pool esta lleno
+    max_overflow=20,
+)
 
 
 # Dependencia para FastAPI (The "Get DB" function)
