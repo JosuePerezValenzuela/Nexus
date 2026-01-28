@@ -1,6 +1,7 @@
+import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlmodel import Session
 
 from app.api.deps import get_db
@@ -12,6 +13,8 @@ from app.schemas.knowledge import (
     PDFResponse,
 )
 from app.services.knowledge_service import knowledge_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -28,8 +31,13 @@ async def create_knowledge(
     """
     Recibe un documento, lo vectoriza y lo guarda.
     """
-    db_obj = KnowledgeBase.model_validate(item)
-    return await knowledge_service.create_new_document(session, db_obj)
+    try:
+        logger.info(f" Creando documento manual: {item.title}")
+        db_obj = KnowledgeBase.model_validate(item)
+        return await knowledge_service.create_new_document(session, db_obj)
+    except Exception as e:
+        logger.error(f"Error creando el documento: {e}")
+        raise HTTPException(status_code=500, detail="Error guardando el documento")  # noqa: B904
 
 
 # 2. GET
@@ -49,7 +57,16 @@ async def upload_pdf(session: SessionDep, file: UploadFile = File(...)) -> PDFRe
     """
     Sube un PDF, lo divide en fragmentos y lo guarda en la base vetorial
     """
-    return await knowledge_service.proccess_pdf(session, file)
+    # Validacion rapida
+    if not file.filename.lower().endswith(".pdf"):  # type: ignore
+        raise HTTPException(status_code=400, detail="Solo se aceptan archivos PDF")
+
+    try:
+        logger.info(f" Recibiendo PDF: {file.filename}")
+        return await knowledge_service.proccess_pdf(session, file)
+    except Exception as e:
+        logger.error(f" Error procesando PDF {file.filename}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Error interno procesando el PDF")  # noqa: B904
 
 
 # 4. Post para obtener los vectores mas parecidos a lo enviado
@@ -63,4 +80,10 @@ async def search_knowledge(
     Endpoint temporal para probar la busqueda vectorial (Recall)
     Busca los N fragmentos mas parecidos a la consulta
     """
-    return await knowledge_service.search_similarity(session, query, limit)
+    logger.info(f"Test de busqueda vectorial: '{query}")
+    results = await knowledge_service.search_similarity(session, query, limit)
+
+    if not results:
+        logger.info(" Busqueda sin resultados")
+
+    return results
