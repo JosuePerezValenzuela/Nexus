@@ -1,10 +1,13 @@
+import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 
-from app.agents.rag_agent import rag_graph
+from app.graph.workflow import rag_graph
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -24,17 +27,29 @@ async def chat_with_worker(request: ChatRequest):
     El agente decidira si buscar en la BD o responder directamente
     """
     try:
-        # 1. Invocamos al grafo de LangGraph
-        # Usamos 'ainvoke' (asincrono) para no bloquear el servidor
+        logger.info(f" Recibido mensaje: '{request.message}'")
+
+        # Preparamos el input para el grafo
+        # LangGraph espera un estado inicial.
         inputs = {"messages": [HumanMessage(content=request.message)]}
 
+        # Ejecucion asincrona
         result: dict[str, Any] = await rag_graph.ainvoke(inputs)  # type: ignore
 
         # 2. Extraemos el ultimo mensaje (La respuesta final del asistente)
-        last_message = result["messages"][-1]
+        messages = result.get("messages", [])
+        if not messages:
+            logger.error("El grafo devolvio una lista de mensajes vacia.")
+            raise ValueError("No response from agent")
+
+        last_message = messages[-1]
+
+        logger.info(f"Respuesta generada: {last_message.content[:50]}....")
 
         return ChatResponse(response=last_message.content)
 
     except Exception as e:
-        print(f"Error en el agente RAG: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        logger.error(f"Error critico en endpoint /chat: {str(e)}", exc_info=True)
+        raise HTTPException(  # noqa: B904
+            status_code=500, detail="Error interno procesando la solicitud"
+        )
