@@ -14,7 +14,7 @@ TOOLS = [search_knowledge_base]
 llm_with_tools = llm_service.llm.bind_tools(TOOLS)  # type: ignore
 
 
-def agent_node(state: AgentState):
+async def agent_node(state: AgentState):
     """
     Funcion del Nodo Agente.
     Responsabilidad: Orquestar la llamada al LLM con el contexto adecuado.
@@ -26,7 +26,7 @@ def agent_node(state: AgentState):
     messages = [sys_msg] + state["messages"]
 
     # Invocamos al modelo
-    response = llm_with_tools.invoke(messages)
+    response = await llm_with_tools.ainvoke(messages)
 
     # Retornamos solo lo nuevo (el reducer se encarga del resto)
     return {"messages": [response]}
