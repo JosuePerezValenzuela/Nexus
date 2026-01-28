@@ -1,6 +1,7 @@
 import logging
-from typing import cast
 
+from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.prompts import PromptTemplate
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field, SecretStr
@@ -62,29 +63,27 @@ class LLMService:
         Genera variantes de la pregunta usando terminologia medica tecnica
         para mejorar la recuperacion en documentos oficiales
         """
-        # Forzar al LLM a responder SOLO con el esquema JSON
-        structured_llm = self.llm.with_structured_output(SearchQueryResponse)  # type: ignore
+        # Configuracion del parser
+        parser = PydanticOutputParser(pydantic_object=SearchQueryResponse)
 
-        system_prompt = """
-        Eres un experto en terminología médica boliviana.
-        Tu objetivo es generar variantes de búsqueda técnica para un motor RAG.
-        Desglosa siglas, usa sinónimos clínicos y sé preciso.
-        """
-
-        user_prompt = f"Genera 3 variantes para buscar: '{original_query}'"
+        prompt = PromptTemplate(
+            template="""
+            Eres un experto en terminología médica.
+            Genera 3 variantes de búsqueda técnica para: "{query}".
+            
+            {format_instructions}
+            """,
+            input_variables=["query"],
+            partial_variables={"format_instructions": parser.get_format_instructions()},
+        )
 
         try:
             # La IA devuelve directamente el objeto Pydantic validado
-            response = await structured_llm.ainvoke(  # type: ignore
-                [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ]
-            )
+            chain = prompt | self.llm | parser  # type: ignore
 
-            # response es una instancia de SearchQueryResponse
-            generated_queries = cast(SearchQueryResponse, response).queries
+            response = await chain.ainvoke({"query": original_query})  # type: ignore
 
+            generated_queries = response.queries
             # Agregamos la original por si acaso
             generated_queries.append(original_query)
 
