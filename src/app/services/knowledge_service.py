@@ -124,7 +124,7 @@ class KnowledgeService:
         # Generacion de multiqueries
         logger.info(f"Query original: {query}")
         search_queries = await llm_service.generate_search_queries(query)
-        logger.debug(f"Queries generadas: {search_queries}")
+        logger.info(f"Queries generadas: {search_queries}")
 
         # Recuperacion masiva
         all_candidates: list[KnowledgeBase] = []
