@@ -1,7 +1,7 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 
-from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference  # type: ignore
@@ -10,34 +10,36 @@ from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.session import create_db_and_tables
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("nexus_ai")
+
 IS_PRODUCTION = settings.ENVIRONMENT == "production"
 
 
+# --- LIFESPAN ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Nexus AI: Inicializando memorias...")
-    create_db_and_tables()
-    print("Tablas de conocimiento listas.")
+    logger.info(" Nexus AI: Inicializando sistemas...")
+    # Diagnostico de LangSmith
+    if not IS_PRODUCTION:
+        key = os.getenv("LANGCHAIN_API_KEY")
+        tracing = os.getenv("LANGCHAIN_TRACING_V2")
+        if key:
+            logger.info(" LangSmith key detectada")
+        if tracing == "true":
+            logger.info(" Tracing activado")
+
+    # Bases de datos
+    try:
+        # Importacion de modelos aqui o en __init__ para que SQLModel los vea
+        create_db_and_tables()
+        logger.info("Tablas de conocimiento verificadas/creadas.")
+    except Exception as e:
+        logger.error(f" Error conectando a BD: {e}")
+
     yield
     print("Nexus AI: Apagando.")
 
-
-load_dotenv()
-
-print("--- DIAGNÓSTICO LANGSMITH ---")
-key = os.getenv("LANGCHAIN_API_KEY")
-tracing = os.getenv("LANGCHAIN_TRACING_V2")
-
-if key:
-    print(f"✅ API Key cargada: {key[:5]}...")  # Solo muestra el inicio por seguridad
-else:
-    print("❌ ERROR: No se encontró LANGCHAIN_API_KEY")
-
-if tracing == "true":
-    print("✅ Tracing activado")
-else:
-    print(f"❌ Tracing NO activo (Valor: {tracing})")
-print("-----------------------------")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -62,9 +64,11 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
+# --- RUTAS ---
 app.include_router(api_router, prefix="/api/v1")
 
 
+# --- Health cheack ---
 @app.get("/", tags=["Health"])
 async def root() -> dict[str, str]:
     return {
