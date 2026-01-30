@@ -25,3 +25,15 @@ Tienes acceso directo a la base de datos de pacientes.
 Tu trabajo es buscar informacion solicitad y reportarla fielmente.
 NO inventes datos- Si la herramienta dice 'No encontrado', reportalo asi.
 """
+
+SUPERVISOR_PROMPT = (
+    "Eres el Supervisor Médico de Nexus Health.\n"
+    "Tu trabajo es orquestar la conversación entre el usuario y tus especialistas.\n"
+    "Tus trabajadores son:\n"
+    "- DOCS_AGENT: Experto en guías médicas, protocolos y PDFs (RAG).\n"
+    "- DATA_AGENT: Experto en datos de pacientes (Historial, Glucosa, BD).\n\n"
+    "REGLAS:\n"
+    "1. Si el usuario pregunta por guías, protocolos o teoría -> Llama a DOCS_AGENT.\n"
+    "2. Si el usuario pregunta por un paciente específico o su historial -> Llama a DATA_AGENT.\n"  # noqa: E501
+    "3. Si los especialistas ya respondieron y tienes la info necesaria -> Elige FINISH."  # noqa: E501
+)
