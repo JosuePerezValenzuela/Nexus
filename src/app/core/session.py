@@ -32,6 +32,7 @@ def get_db() -> Generator[Session, None, None]:
 
 def create_db_and_tables():
     """Crea las tablas en la BD"""
+    from app.db.init_data import init_db
     from app.models.knowledge import KnowledgeBase  # noqa: F401
 
     # Esto es codigo SQL puro que indica activar pgvector
@@ -40,3 +41,6 @@ def create_db_and_tables():
         connection.commit()
 
     SQLModel.metadata.create_all(engine)
+
+    with Session(engine) as session:
+        init_db(session)
