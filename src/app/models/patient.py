@@ -34,16 +34,20 @@ class ClinicalRecord(SQLModel, table=True):
     # Glucemia
     fasting_glucose: float = Field(description="Glucosa en ayunas (mg/dL)")
     post_prandial_glucose: float | None = Field(
-        default=None, description="Hemoglobina Glicosilaba (%)"
+        default=None, description="Glucosa 2h post comida"
     )
+    hba1c: float | None = Field(default=None, description="Hemoglobina Glicosilada (%)")
 
     # Antropometria (Para calculo de riesgo cardiovascular)
     weight_kg: float
     height_cm: float
     waist_circumference: float | None = None
 
+    # Notas del medico en esa visita
+    notes: str | None = None
+
     # Foreign key
-    patient_id: int = Field(foreign_key="patient.id")
+    patient_id: int | None = Field(default=None, foreign_key="patient.id")
     patient: Patient | None = Relationship(back_populates="records")
 
     @property
