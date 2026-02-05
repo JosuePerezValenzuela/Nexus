@@ -37,18 +37,21 @@ prompt = ChatPromptTemplate.from_messages(  # type: ignore
 
 
 # El nodo supervisor
-async def supervisor_node(state: AgentState):
-    # Uso de with_structured_output para garantizar que devuelva el json correcto
-    supervisor_chain = prompt | llm_service.llm.with_structured_output(RouteResponse)  # type: ignore
+async def supervisor_node(state: AgentState):  # type: ignore
+    supervisor_chain = prompt | llm_service.llm.with_structured_output(  # type: ignore
+        RouteResponse, method="json_mode"
+    )
 
-    result = await supervisor_chain.ainvoke(state)  # type: ignore
+    try:
+        result = await supervisor_chain.ainvoke(state)  # type: ignore
 
-    if not result:
+        # Si el parsing falla, terminamos
+        if not result or not result.next:  # type: ignore
+            return {"next": "FINISH"}
+
+        return {"next": result.next}  # type: ignore
+
+    except Exception as e:
+        # Si el llm alucina, terminamos para evitar bucles
+        print(f"Error en supervisor: {e}")
         return {"next": "FINISH"}
-
-    decision: RouteResponse = result  # type: ignore
-
-    # Devolvemos la decision en el estado, LangGraph moderno prefiere devolver el
-    # comando para el router condicional
-    # Solo se devuelve la decision para que el router la lea.
-    return {"next": decision.next}
