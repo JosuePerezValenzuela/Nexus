@@ -2,6 +2,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference  # type: ignore
@@ -21,7 +22,10 @@ IS_PRODUCTION = settings.ENVIRONMENT == "production"
 async def lifespan(app: FastAPI):
     logger.info(" Nexus AI: Inicializando sistemas...")
     # Diagnostico de LangSmith
+    load_dotenv()
+    print(IS_PRODUCTION)
     if not IS_PRODUCTION:
+        print("Hola")
         key = os.getenv("LANGCHAIN_API_KEY")
         tracing = os.getenv("LANGCHAIN_TRACING_V2")
         if key:
