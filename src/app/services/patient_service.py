@@ -59,7 +59,7 @@ class PatientService:
         age = self._calculate_age(patient.birth_date)
 
         report = (
-            f" **FICHA DEL PACIENTE (ID: {patient.id}**\n)"
+            f"## FICHA DEL PACIENTE (ID: {patient.id}**\n)"
             f"Nombre: {patient.full_name}\n"
             f"Edad: {age} años ({patient.birth_date})\n"
             f"Sexo: {patient.gender}\n"
