@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 
-from app.graph.workflow import rag_graph
+from app.graph.workflow import graph
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +21,9 @@ class ChatResponse(BaseModel):
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat_with_worker(request: ChatRequest):
+async def chat_with_agente(request: ChatRequest):
     """
-    Endpoint para conversar con el Worker de RAG.
-    El agente decidira si buscar en la BD o responder directamente
+    Endpoint para conversar con el Workflow principal.
     """
     try:
         logger.info(f" Recibido mensaje: '{request.message}'")
@@ -34,7 +33,7 @@ async def chat_with_worker(request: ChatRequest):
         inputs = {"messages": [HumanMessage(content=request.message)]}
 
         # Ejecucion asincrona
-        result: dict[str, Any] = await rag_graph.ainvoke(inputs)  # type: ignore
+        result: dict[str, Any] = await graph.ainvoke(inputs)  # type: ignore
 
         # 2. Extraemos el ultimo mensaje (La respuesta final del asistente)
         messages = result.get("messages", [])
