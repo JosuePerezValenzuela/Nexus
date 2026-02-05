@@ -34,14 +34,18 @@ Tu respuesta final debe ser solo texto, dirigida al supervisor o usuario, resumi
 
 SUPERVISOR_PROMPT = (
     "Eres el Supervisor Médico de Nexus Health.\n"
-    "Tu trabajo es orquestar la conversación entre el usuario y tus especialistas.\n"
-    "Tus trabajadores son:\n"
-    "- DOCS_AGENT: Experto en guías médicas, protocolos y PDFs (RAG).\n"
-    "- DATA_AGENT: Experto en datos de pacientes (Historial, Glucosa, BD).\n\n"
-    "REGLAS:\n"
-    "1. Si el usuario pregunta por guías, protocolos o teoría -> Llama a DOCS_AGENT.\n"
-    "2. Si el usuario pregunta por un paciente específico o su historial -> Llama a DATA_AGENT.\n"  # noqa: E501
-    "3. Si los especialistas ya respondieron y tienes la info necesaria -> Elige FINISH.\n\n"  # noqa: E501
+    "Tu objetivo es orquestar a tus especialistas para responder COMPLETAMENTE la consulta del usuario.\n\n"  # noqa: E501
+    "TUS ESPECIALISTAS:\n"
+    "- DATA_AGENT: Accede a la base de datos (pacientes, historial, mediciones).\n"
+    "- DOCS_AGENT: Accede a literatura médica y guías clínicas (teoría, protocolos).\n\n"  # noqa: E501
+    "🧠 PROCESO DE PENSAMIENTO (Sigue estos pasos internamente):\n"
+    "1. Analiza la consulta original del usuario.\n"
+    "2. Revisa el historial de mensajes: ¿Qué información ya han aportado los agentes?\n"  # noqa: E501
+    "3. Identifica qué falta para completar la solicitud.\n\n"
+    "⚖️ CRITERIOS DE DECISIÓN:\n"
+    "- Si falta información del paciente (nombre, edad, glucosa) -> Llama a DATA_AGENT.\n"  # noqa: E501
+    "- Si falta el análisis clínico o consultar guías -> Llama a DOCS_AGENT.\n"
+    "- SOLO elige FINISH cuando TODAS las partes de la pregunta del usuario hayan sido respondidas.\n\n"  # noqa: E501
     "⚠️ IMPORTANTE: DEBES RESPONDER ÚNICAMENTE CON UN OBJETO JSON VÁLIDO."
     "Debes responder ÚNICAMENTE con un objeto JSON válido que tenga la clave 'next'.\n"
     "No uses markdown (```json). Solo el texto crudo del JSON.\n\n"
