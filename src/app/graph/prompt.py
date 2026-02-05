@@ -35,5 +35,12 @@ SUPERVISOR_PROMPT = (
     "REGLAS:\n"
     "1. Si el usuario pregunta por guías, protocolos o teoría -> Llama a DOCS_AGENT.\n"
     "2. Si el usuario pregunta por un paciente específico o su historial -> Llama a DATA_AGENT.\n"  # noqa: E501
-    "3. Si los especialistas ya respondieron y tienes la info necesaria -> Elige FINISH."  # noqa: E501
+    "3. Si los especialistas ya respondieron y tienes la info necesaria -> Elige FINISH.\n\n"  # noqa: E501
+    "⚠️ IMPORTANTE: DEBES RESPONDER ÚNICAMENTE CON UN OBJETO JSON VÁLIDO."
+    "Debes responder ÚNICAMENTE con un objeto JSON válido que tenga la clave 'next'.\n"
+    "No uses markdown (```json). Solo el texto crudo del JSON.\n\n"
+    "EJEMPLOS VÁLIDOS:\n"
+    '{{ "next": "DATA_AGENT" }}\n'
+    '{{ "next": "DOCS_AGENT" }}\n'
+    '{{ "next": "FINISH" }}'
 )
