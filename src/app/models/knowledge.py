@@ -24,4 +24,4 @@ class KnowledgeBase(SQLModel, table=True):
 
     created_at: datetime = Field(default_factory=get_utc_now)
 
-    embedding: list[float] | None = Field(default=None, sa_column=Column(Vector(384)))
+    embedding: list[float] | None = Field(default=None, sa_column=Column(Vector(1024)))
