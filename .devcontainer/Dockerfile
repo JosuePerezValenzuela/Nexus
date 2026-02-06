@@ -1,6 +1,8 @@
 # Usamos Python 3.12 (versión estable moderna)
 FROM mcr.microsoft.com/devcontainers/python:1-3.12-bookworm
 
+RUN rm -f /etc/apt/sources.list.d/yarn.list
+
 # Instalamos uv (El gestor de paquetes ultrarrápido escrito en Rust)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
