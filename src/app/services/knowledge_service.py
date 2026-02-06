@@ -39,8 +39,11 @@ class KnowledgeService:
         # Unimos titulo y contenido para que el vector tenga mas contexto
         full_text = f"{document_data.title}. {document_data.content}"
 
-        # Generamos el vector, llamando a ollama y devolviendo la lista de floats
-        vector = await llm_service.get_embedding(full_text)
+        # Agregamos prefijo
+        text_to_embed = f"passage: {full_text}"
+
+        # Generamos el vector y devolviendo la lista de floats
+        vector = await llm_service.get_embedding(text_to_embed)
 
         # Asignar el vector al objeto
         document_data.embedding = vector
@@ -84,7 +87,8 @@ class KnowledgeService:
 
             # Procesamiento de cada fragmento
             for split in splits:
-                vector = await llm_service.get_embedding(split.page_content)
+                text_to_embed = f"passage: {split.page_content}"
+                vector = await llm_service.get_embedding(text_to_embed)
 
                 meta = cast(dict[str, Any], split.metadata)  # type: ignore
 
@@ -114,7 +118,11 @@ class KnowledgeService:
                 os.remove(temp_path)
 
     async def search_similarity(
-        self, session: Session, query: str, k: int = 5
+        self,
+        session: Session,
+        query: str,
+        k: int = 5,
+        context_summary: str | None = None,
     ) -> list[KnowledgeBase]:
         """
         Busqueda en 2 pasos:
@@ -123,7 +131,9 @@ class KnowledgeService:
         """
         # Generacion de multiqueries
         logger.info(f"Query original: {query}")
-        search_queries = await llm_service.generate_search_queries(query)
+        search_queries = await llm_service.generate_search_queries(
+            query, context_summary
+        )
         logger.info(f"Queries generadas: {search_queries}")
 
         # Recuperacion masiva

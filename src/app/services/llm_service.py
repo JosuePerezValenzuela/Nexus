@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Definicion de la estructura exacta que queremos que la IA nos devuelva
 class SearchQueryResponse(BaseModel):
     queries: list[str] = Field(
-        description="Lista de 3 varaintes de busqueda tecnica y precisa."
+        description="Lista de 3 variantes de busqueda tecnica y precisa."
     )
 
 
@@ -41,7 +41,8 @@ class LLMService:
         )
 
         # Embeddings
-        embedding_model = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+        embedding_model = "intfloat/multilingual-e5-large"
+        logger.info("Cargando el modelo de embeddings")
         self.embeddings = HuggingFaceEmbeddings(
             model_name=embedding_model,
             model_kwargs={"device": "cpu"},
@@ -52,45 +53,78 @@ class LLMService:
 
     async def get_embedding(self, text: str) -> list[float]:
         """
-        Genera vectores para RAG
+        Genera embeddings para la query de busqueda.
         """
         # Limpiamos saltos de linea que a veces ensucian al vector
-        clean_text = text.replace("\n", " ")
-        return await self.embeddings.aembed_query(clean_text)
+        clean_text = text.replace("\n", " ").strip()
 
-    async def generate_search_queries(self, original_query: str) -> list[str]:
+        # Prefijo obligatorio para el modelo de embedings intfloat/multilingual/e5
+        text_with_prefix = f"query: {clean_text}"
+
+        return await self.embeddings.aembed_query(text_with_prefix)
+
+    async def generate_search_queries(
+        self, original_query: str, context_summary: str | None = None
+    ) -> list[str]:
         """
         Genera variantes de la pregunta usando terminologia medica tecnica
-        para mejorar la recuperacion en documentos oficiales
+        para mejorar la recuperacion en documentos oficiales, tambien usa el contexto
+        del paciente si existe.
         """
         # Configuracion del parser
         parser = PydanticOutputParser(pydantic_object=SearchQueryResponse)
 
+        # Prompt con inyeccion de contexto del paciente si existe
         prompt = PromptTemplate(
             template="""
-            Eres un experto en terminología médica.
-            Genera 3 variantes de búsqueda técnica para: "{query}".
+            Eres un asistente experto en investigacion medica clinica.
+            Tu objetivo es generar 3 consultas de busqueda (queries) optimizadas para
+            una base de datos vectorial de guias medicas y protocolos.
+            
+            INFORMACION DE CONTEXTO (Datos del paciente encontrados previamente):
+            {context}
+            
+            PREGUNTA DEL USUARIO:
+            {query}
+            
+            INSTRUCCIONES:
+            1. Si el contexto tiene datos de un paciente, Usalos para hacer la busqueda
+            mas especifica.
+                - Mal: "¿Que es la diabetes?"
+                - Bien: "Protocolo diagnostico diabetes glucosa ayunas 145 mg/dL adulto"
+            2. Usa terminologia medica tecnica (ej: "Hiperglucemia", "HbA1c", "Criterios ADA").
+            3. Genera variantes que cubran diferentes aspectos (diagnostico, tratamiento, valores normales).
             
             {format_instructions}
-            """,
-            input_variables=["query"],
+            """,  # noqa: E501
+            input_variables=["query", "context"],
             partial_variables={"format_instructions": parser.get_format_instructions()},
         )
 
         try:
-            # La IA devuelve directamente el objeto Pydantic validado
+            # Si no hay contexto, pasamos un string vacio para no romper el prompt
+            safe_context = (
+                context_summary
+                if context_summary
+                else "No hay datos previos del paciente."
+            )  # noqa: E501
+
             chain = prompt | self.llm | parser  # type: ignore
 
-            response = await chain.ainvoke({"query": original_query})  # type: ignore
+            response: SearchQueryResponse = await chain.ainvoke(  # type: ignore
+                {  # type: ignore
+                    "query": original_query,
+                    "context": safe_context,
+                }
+            )
 
             generated_queries = response.queries
-            # Agregamos la original por si acaso
+            # Agregamos la query original
             generated_queries.append(original_query)
 
-            logger.debug(f"Queries generadas: {generated_queries}")
-
-            # Eliminamos duplicados manteniendo el orden
+            # Deduplicar
             return list(dict.fromkeys(generated_queries))
+
         except Exception as e:
             # Fallback seguro: Si falla la IA, usamos solo la original
             logger.warning(
