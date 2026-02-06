@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # RAG Settings
     RAG_CHUNK_SIZE: int = 1200
     RAG_CHUNK_OVERLAP: int = 300
-    RAG_RERANKER_MODEL: str = "ms-marco-TinyBERT-L-2-v2"
+    RAG_RERANKER_MODEL: str = "ms-marco-MiniLM-L-12-v2"
     RAG_TEMP_DIR: str = "/tmp/nexus_uploads"
 
     # computed_field calcula la URL automaticamente basandonos en los campos anteriores
