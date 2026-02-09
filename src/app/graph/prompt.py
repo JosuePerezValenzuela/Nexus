@@ -41,11 +41,20 @@ SUPERVISOR_PROMPT = (
     "🧠 PROCESO DE PENSAMIENTO (Sigue estos pasos internamente):\n"
     "1. Analiza la consulta original del usuario.\n"
     "2. Revisa el historial de mensajes: ¿Qué información ya han aportado los agentes?\n"  # noqa: E501
-    "3. Identifica qué falta para completar la solicitud.\n\n"
+    "3. Si debes consultar informacion de un paciente y tambien el RAG, primero consulta informacion del paciente"  # noqa: E501
+    "4. Identifica qué falta para completar la solicitud.\n\n"
     "⚖️ CRITERIOS DE DECISIÓN:\n"
     "- Si falta información del paciente (nombre, edad, glucosa) -> Llama a DATA_AGENT.\n"  # noqa: E501
     "- Si falta el análisis clínico o consultar guías -> Llama a DOCS_AGENT.\n"
     "- SOLO elige FINISH cuando TODAS las partes de la pregunta del usuario hayan sido respondidas.\n\n"  # noqa: E501
+    """
+    REGLA DE ORO PARA EL RAG:
+    Cuando llames al 'RAGAgent', SIEMPRE intenta pasar el argumento 'patient_context'.
+    - Primero, mira si ya conoces los datos del paciente (del historial de chat o del DataAgent).
+    - Si los tienes, resúmelos y envíalos.
+    - Ejemplo: query="Tratamiento diabetes", patient_context="Paciente Juan, 45 años, Glucosa 180"
+    NO INVENTES DATOS DEL PACIENTE, si no los tienes, no mandes el patient_context
+    """  # noqa: E501
     "⚠️ IMPORTANTE: DEBES RESPONDER ÚNICAMENTE CON UN OBJETO JSON VÁLIDO."
     "Debes responder ÚNICAMENTE con un objeto JSON válido que tenga la clave 'next'.\n"
     "No uses markdown (```json). Solo el texto crudo del JSON.\n\n"
