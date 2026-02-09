@@ -4,6 +4,11 @@
     "dockerfile": "Dockerfile",
     "context": "."
   },
+  "containerEnv": {
+    "ANTHROPIC_BASE_URL": "http://host.docker.internal:1234",
+    "ANTHROPIC_AUTH_TOKEN": "lmstudio",
+    "ANTHROPIC_MODEL": "qwen/qwen2.5-coder-14b"
+  },
   "customizations": {
     "vscode": {
       "settings": {
@@ -18,7 +23,7 @@
       ]
     }
   },
-  "runArgs": ["--network=nexus-ai-backend_nexus-network"],
+  "runArgs": ["--network=nexus-ai-backend_nexus-network", "--add-host=host.docker.internal:host-gateway"],
   "remoteUser": "vscode",
   "postCreateCommand": "uv sync" // Se ejecutará al crear el contenedor
 }
