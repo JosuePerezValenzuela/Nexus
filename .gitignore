@@ -27,3 +27,7 @@ wheels/
 !.vscode/extensions.json
 
 /opt
+
+# Claude
+.claude/
+CLAUDE.MD
