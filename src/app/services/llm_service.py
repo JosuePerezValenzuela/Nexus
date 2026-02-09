@@ -2,7 +2,7 @@ import logging
 
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings, HuggingFaceEndpointEmbeddings
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field, SecretStr
 
@@ -41,15 +41,25 @@ class LLMService:
         )
 
         # Embeddings
-        embedding_model = "intfloat/multilingual-e5-large"
-        logger.info("Cargando el modelo de embeddings")
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name=embedding_model,
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={
-                "normalize_embeddings": True
-            },  # Ayuda a la similitud de coseno
-        )
+        app_env = settings.ENVIRONMENT
+        model_id = "intfloat/multilingual-e5-large"
+
+        if app_env == "production":
+            logger.info(" MODO PRODUCCION: Uso de HuggingFace API")
+            self.embeddings = HuggingFaceEndpointEmbeddings(
+                model=model_id,
+                task="feature-extraction",
+                huggingfacehub_api_token=settings.HF_TOKEN,
+            )
+        else:
+            logger.info("Modo desarrollo: Cargando el modelo de embeddings")
+            self.embeddings = HuggingFaceEmbeddings(
+                model_name=model_id,
+                model_kwargs={"device": "cpu"},
+                encode_kwargs={
+                    "normalize_embeddings": True
+                },  # Ayuda a la similitud de coseno
+            )
 
     async def get_embedding(self, text: str) -> list[float]:
         """
