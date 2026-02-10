@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
         return PostgresDsn.build(
-            scheme="postgresql+psycopg",  # Driver moderno para PostgreSQL
+            scheme="postgresql+asyncpg",  # Driver moderno para PostgreSQL
             username=self.POSTGRES_USER,
             password=self.POSTGRES_PASSWORD,
             host=self.POSTGRES_SERVER,
