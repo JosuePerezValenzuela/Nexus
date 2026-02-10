@@ -1,8 +1,7 @@
 from langchain_core.tools import tool  # type: ignore
 from pydantic import BaseModel, Field
-from sqlmodel import Session  # type: ignore
 
-from app.core.session import engine
+from app.core.session import async_session_factory
 from app.services.knowledge_service import knowledge_service
 
 
@@ -32,7 +31,7 @@ async def search_knowledge_base(query: str, patient_context: str | None = None) 
     """
 
     # Abrimos sesion efimera
-    with Session(engine) as session:
+    async with async_session_factory() as session:
         try:
             # LLamamos al servicio pasando el contexto (si existe)
             results = await knowledge_service.search_similarity(

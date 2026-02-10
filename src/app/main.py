@@ -23,9 +23,7 @@ async def lifespan(app: FastAPI):
     logger.info(" Nexus AI: Inicializando sistemas...")
     # Diagnostico de LangSmith
     load_dotenv()
-    print(IS_PRODUCTION)
     if not IS_PRODUCTION:
-        print("Hola")
         key = os.getenv("LANGCHAIN_API_KEY")
         tracing = os.getenv("LANGCHAIN_TRACING_V2")
         if key:
@@ -36,7 +34,7 @@ async def lifespan(app: FastAPI):
     # Bases de datos
     try:
         # Importacion de modelos aqui o en __init__ para que SQLModel los vea
-        create_db_and_tables()
+        await create_db_and_tables()
         logger.info("Tablas de conocimiento verificadas/creadas.")
     except Exception as e:
         logger.error(f" Error conectando a BD: {e}")

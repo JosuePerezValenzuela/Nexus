@@ -2,9 +2,9 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.api.deps import get_db
+from app.core.session import get_db
 from app.models.knowledge import KnowledgeBase
 from app.schemas.knowledge import (
     DocumentResponse,
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-SessionDep = Annotated[Session, Depends(get_db)]
+SessionDep = Annotated[AsyncSession, Depends(get_db)]
 
 
 # 1. POST
@@ -42,13 +42,13 @@ async def create_knowledge(
 
 # 2. GET
 @router.get("/", response_model=list[KnowledgeRead])
-def read_knowledge(
+async def read_knowledge(
     session: SessionDep,
 ) -> list[KnowledgeBase]:  # 👈 AQUI: Devolvemos una lista de objetos de BD
     """
     Obtiene todos los documentos de la base de conocimiento.
     """
-    return knowledge_service.get_all_documents(session)
+    return await knowledge_service.get_all_documents(session)
 
 
 # 3. Post para subir PDF

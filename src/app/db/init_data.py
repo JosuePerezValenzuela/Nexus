@@ -1,7 +1,8 @@
 import logging
 from datetime import date, timedelta
 
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 # Importacion de los modelos
 from app.models.patient import ClinicalRecord, Patient
@@ -9,13 +10,14 @@ from app.models.patient import ClinicalRecord, Patient
 logger = logging.getLogger(__name__)
 
 
-def init_db(session: Session) -> None:
+async def init_db(session: AsyncSession) -> None:
     """
     Funcion idempotente para sembrar datos iniciales.
     Si ya existen pacientes, no hacemos nada
     """
     # Verificacion si ya existen datos
-    patient = session.exec(select(Patient)).first()
+    patients = await session.exec(select(Patient).limit(1))
+    patient = patients.first()
     if patient:
         logger.info(" La base de datos ya tiene pacientes, Seeder omitido.")
         return
@@ -102,6 +104,6 @@ def init_db(session: Session) -> None:
     session.add(p1)
     session.add(p2)
     session.add(p3)
-    session.commit()
+    await session.commit()
 
     logger.info(" Seeding completado exitosamente.")

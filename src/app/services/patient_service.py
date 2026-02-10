@@ -1,15 +1,16 @@
 from datetime import date
 
-from sqlmodel import Session, col, select
+from sqlmodel import col, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 # Importacion de los modelos para poder hacer consultas
 from app.models.patient import Patient
 
 
 class PatientService:
-    def get_patient_history(
+    async def get_patient_history(
         self,
-        session: Session,
+        session: AsyncSession,
         name_query: str | None = None,
         patient_id: int | None = None,
     ) -> str:  # noqa: E501
@@ -22,7 +23,7 @@ class PatientService:
         """
         # Busqueda por id
         if patient_id:
-            patient = session.get(Patient, patient_id)
+            patient = await session.get(Patient, patient_id)
             if not patient:
                 return f" Error: No existe ningun paciente con el ID {patient_id}."
             return self._generate_full_report(patient)
@@ -32,7 +33,8 @@ class PatientService:
             statement = select(Patient).where(
                 col(Patient.full_name).ilike(f"%{name_query}%")
             )
-            results = session.exec(statement).all()
+            result = await session.exec(statement)
+            results = result.all()
 
             # Caso A: No existe
             if not results:

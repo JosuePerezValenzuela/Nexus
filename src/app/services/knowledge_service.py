@@ -8,7 +8,8 @@ from fastapi import UploadFile
 from flashrank import Ranker, RerankRequest  # type: ignore
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
 from app.models.knowledge import KnowledgeBase
@@ -29,7 +30,7 @@ class KnowledgeService:
 
     # Recibe una sesion de BD y datos
     async def create_new_document(
-        self, session: Session, document_data: KnowledgeBase
+        self, session: AsyncSession, document_data: KnowledgeBase
     ) -> KnowledgeBase:
         """
         Crea un documento, genera su vector con IA y lo guarda en Postgres.
@@ -50,17 +51,19 @@ class KnowledgeService:
 
         # Guardamos en la BD
         session.add(document_data)
-        session.commit()
-        session.refresh(document_data)
+        await session.commit()
+        await session.refresh(document_data)
 
         return document_data
 
-    def get_all_documents(self, session: Session) -> list[KnowledgeBase]:
+    async def get_all_documents(self, session: AsyncSession) -> list[KnowledgeBase]:
         statement = select(KnowledgeBase)
-        results = session.exec(statement)
+        results = await session.exec(statement)
         return list(results.all())
 
-    async def proccess_pdf(self, session: Session, file: UploadFile) -> PDFResponse:
+    async def proccess_pdf(
+        self, session: AsyncSession, file: UploadFile
+    ) -> PDFResponse:  # noqa: E501
         """
         Recibe un PDF, lo guarda temporalmente, lo trocea y vectoriza cada parte
         """
@@ -102,7 +105,7 @@ class KnowledgeService:
 
                 session.add(new_chunk)
 
-            session.commit()
+            await session.commit()
             return PDFResponse(
                 filename=file.filename or "unknown",
                 message="PDF procesado exitosamente.",
@@ -119,24 +122,25 @@ class KnowledgeService:
 
     async def search_similarity(
         self,
-        session: Session,
+        session: AsyncSession,
         query: str,
         k: int = 5,
         context_summary: str | None = None,
+        score_threshold: float = 0.60,
     ) -> list[KnowledgeBase]:
         """
         Busqueda en 2 pasos:
         1. Recuperacion amplia (Vectores) -> Trae candidatos.
         2. Reranking (FlashRank) -> Ordena por relevancia real
         """
-        # Generacion de multiqueries
+        # 1. Generacion de multiqueries
         logger.info(f"Query original: {query}")
         search_queries = await llm_service.generate_search_queries(
             query, context_summary
         )
         logger.info(f"Queries generadas: {search_queries}")
 
-        # Recuperacion masiva
+        # 2. Recuperacion masiva
         all_candidates: list[KnowledgeBase] = []
         seen_ids: set[Any] = set()
 
@@ -149,7 +153,9 @@ class KnowledgeService:
                 .limit(k * 2)
             )
 
-            results = session.exec(statement).all()
+            result = await session.exec(statement)
+
+            results = result.all()
 
             for doc in results:
                 if doc.id not in seen_ids:
@@ -171,18 +177,35 @@ class KnowledgeService:
 
         logger.info(f"Reranking {len(passages)} candidatos...")
 
+        # 3. Preparacion para QUERY ENRIQUECIDA para el RERANKER
+        # El Reranker funciona mejor si le damos todo lo el contexto posible
+        rerank_query = query
+        if context_summary:
+            rerank_query = f"{query}. Contexto relevante: {context_summary}"
+
         # 4. RERANKING
         # OJO: Aquí el Reranker compara los documentos encontrados contra
         # la pregunta ORIGINAL del usuario. Él decide cuál es la mejor respuesta.
         reranked_results = self.ranker.rerank(
-            RerankRequest(query=query, passages=passages)
+            RerankRequest(query=rerank_query, passages=passages)
         )  # noqa: E501
 
-        # 5. RETORNAR LOS TOP K
+        # 5. FILTRADO y RETORNO (THRESHOLDING)
         final_docs: list[KnowledgeBase] = []
+
         for result in reranked_results[:k]:
             # Casting y recuperación segura
+            score = result.get("score", 0)
             doc_id = str(result["id"])
+
+            logger.info(
+                f"Doc: {doc_id} | Score: {score:.4f} | Threshold: {score_threshold}"
+            )  # noqa: E501
+
+            # Filtro de la basura
+            if score < score_threshold:
+                continue
+
             if doc := candidate_map.get(doc_id):
                 final_docs.append(doc)
 
