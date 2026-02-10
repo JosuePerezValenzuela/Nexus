@@ -5,7 +5,33 @@ networks:
     driver: bridge
 
 services:
-  #Servicio de Base de datos
+  # Sevicio del BackEnd
+  backend:
+    build: 
+      # Usamos el DockerFile
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+
+    command: sleep infinity
+
+    volumes:
+      # A. Sincronizacion del codigo
+      - .:/workspaces/Nexus:cached
+
+      # B. Aislamiento del .venv
+      - backend-venv:/workspaces/Nexus/.venv
+
+      # C. Persistimos el cache de UV
+      - uv-cache:/root/.cache/uv
+
+    environment:
+      - UV_LINK_MODE=copy
+
+    networks:
+      - nexus-network
+
+
+  # Servicio de Base de datos
   db:
     #Imagen oficial de pgvector (Postgres 16 + extension vectorial)
     image: pgvector/pgvector:pg16
@@ -32,44 +58,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-  
-  vllm:
-    image: vllm/vllm-openai:latest
-    container_name: nexus_vllm
-    entrypoint: /bin/bash
-    runtime: nvidia
-    environment:
-      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
-      - VLLM_API_KEY=${VLLM_API_KEY}
-    volumes:
-      - ~/.cache/huggingface:/root/.cache/huggingface
-      - /usr/lib/wsl:/usr/lib/wsl
-    ports:
-      - "8001:8000"
-    command: |
-      -c "
-      echo '🔍 Buscando libcuda.so.1...'
-      LIBCUDA=$$(find /usr/lib/wsl -name 'libcuda.so.1' | head -n 1)
-      if [ -z \"$$LIBCUDA\" ]; then echo '❌ ERROR: No libcuda'; exit 1; fi
-      echo \"✅ Encontrado: $$LIBCUDA\"
-      mkdir -p /usr/local/lib/wsl_fix
-      ln -s \"$$LIBCUDA\" /usr/local/lib/wsl_fix/libcuda.so
-      ln -s \"$$LIBCUDA\" /usr/local/lib/wsl_fix/libcuda.so.1
-      export LD_LIBRARY_PATH=/usr/local/lib/wsl_fix:$$LD_LIBRARY_PATH
-      
-      echo '🚀 Arrancando Llama 3.1...'
-      python3 -m vllm.entrypoints.openai.api_server --model neuralmagic/Meta-Llama-3.1-8B-Instruct-FP8 --gpu-memory-utilization 0.90 --max-model-len 8192 --dtype auto --api-key $${VLLM_API_KEY} --enable-auto-tool-choice --tool-call-parser llama3_json
-      "
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    networks:
-      - nexus-network
 
 # Definicion del volumen
 volumes:
   nexus_postgres_data:
+  backend-venv:
+  uv-cache:

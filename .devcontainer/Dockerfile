@@ -18,8 +18,4 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-RUN su - vscode -c "curl -fsSL https://claude.ai/install.sh | bash -s stable"
-
-ENV PATH="/home/vscode/.local/bin:${PATH}"
-
-RUN su - vscode -c "command -v claude && claude --version"
+RUN mkdir -p /workspaces/Nexus/.venv && chown vscode:vscode /workspaces/Nexus/.venv
