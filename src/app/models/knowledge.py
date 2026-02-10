@@ -6,7 +6,8 @@ from sqlmodel import Field, SQLModel  # type: ignore
 
 
 def get_utc_now():
-    return datetime.now(UTC)
+    now = datetime.now(UTC)
+    return now.replace(tzinfo=None)
 
 
 class KnowledgeBase(SQLModel, table=True):
