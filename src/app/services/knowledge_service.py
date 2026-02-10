@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import shutil
@@ -76,6 +77,8 @@ class KnowledgeService:
         try:
             # Carga del pdf
             logger.info(f"Procesando PDF: {file.filename}")
+
+            # Carga y Chunking (CPU Bound - Rapido)
             loader = PyMuPDFLoader(temp_path)
             docs = loader.load()  # Extrae el texto pagina por pagina
 
@@ -86,26 +89,38 @@ class KnowledgeService:
             )
             splits = text_splitter.split_documents(docs)
 
-            print(f"Generados {len(splits)} chunks para {file.filename}")
+            logger.info(f"Generados {len(splits)} chunks para {file.filename}")
 
-            # Procesamiento de cada fragmento
-            for split in splits:
-                text_to_embed = f"passage: {split.page_content}"
-                vector = await llm_service.get_embedding(text_to_embed)
+            # Vectorizacion concurrente
+            semaphore = asyncio.Semaphore(5)
 
+            async def get_embedding_controlled(text: str):
+                async with semaphore:
+                    # Añadimos el prefijo
+                    return await llm_service.get_embedding(f"passage: {text}")  # noqa: E501
+
+            tasks = [get_embedding_controlled(split.page_content) for split in splits]
+
+            # Ejecutamos todas la tareas en paralelo y esperamos los resultados
+            vectors = await asyncio.gather(*tasks)
+
+            # Insercion Masiva en BD
+            new_chunks = []
+            for i, split in enumerate(splits):
                 meta = cast(dict[str, Any], split.metadata)  # type: ignore
 
-                # Creacion del objeto a guardar en la BD
-                new_chunk = KnowledgeBase(
-                    title=f"{file.filename} - Pag {meta.get('page', 0)}",
+                # Usamos el vector que ya calculamos en paralelo
+                chunk = KnowledgeBase(
+                    title=f"{file.filename} - Pag {meta.get('page', 0) + 1}",
                     content=split.page_content,
                     source=file.filename or "unknown",
-                    embedding=vector,
+                    embedding=vectors[i],
                 )
+                new_chunks.append(chunk)  # type: ignore
 
-                session.add(new_chunk)
-
+            session.add_all(new_chunks)  # type: ignore
             await session.commit()
+
             return PDFResponse(
                 filename=file.filename or "unknown",
                 message="PDF procesado exitosamente.",
