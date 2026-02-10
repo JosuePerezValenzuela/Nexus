@@ -64,7 +64,7 @@ async def search_knowledge_base(query: str, patient_context: str | None = None) 
                     f"--- Fin del fragmento ---\n\n"
                 )
 
-                return response_text
+            return response_text
 
         except Exception as e:
             return f" Error tecnico al consultar KnowledgeBase: {str(e)}"
