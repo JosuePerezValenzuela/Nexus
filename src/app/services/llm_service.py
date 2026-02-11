@@ -87,23 +87,23 @@ class LLMService:
         # Prompt con inyeccion de contexto del paciente si existe
         prompt = PromptTemplate(
             template="""
-            Eres un asistente experto en investigacion medica clinica.
-            Tu objetivo es generar 3 consultas de busqueda (queries) optimizadas para
-            una base de datos vectorial de guias medicas y protocolos.
+            Eres un experto en recuperacion de informacion medica.
+            Tu objetivo es generar 3 consultas de busqueda (queries) para una base de datos vectorial.
             
-            INFORMACION DE CONTEXTO (Datos del paciente encontrados previamente):
+            INFORMACION DE CONTEXTO:
             {context}
             
             PREGUNTA DEL USUARIO:
             {query}
             
             INSTRUCCIONES:
-            1. Si el contexto tiene datos de un paciente, Usalos para hacer la busqueda
-            mas especifica.
-                - Mal: "¿Que es la diabetes?"
-                - Bien: "Protocolo diagnostico diabetes glucosa ayunas 145 mg/dL adulto"
-            2. Usa terminologia medica tecnica (ej: "Hiperglucemia", "HbA1c", "Criterios ADA").
-            3. Genera variantes que cubran diferentes aspectos (diagnostico, tratamiento, valores normales).
+            1. Genera queries CONCEPTUALES y CORTAS.
+            2. No incluyas valores numericos especificos (ej: NO pongas '115 mg/dL', pon 'hiperglucemia' o 'prediabetes')
+            3. El objetivo es encontrar la GUIA CLINICA general, no el caso especifico.
+            
+            Ejemplos:
+            - Mal: "Tratamiento para pacientes de 45 años con glucosa 115"
+            - Bien: "Protocolo manejo prediabetes adulto", "Tratamiento hiperglucemia leve"
             
             {format_instructions}
             """,  # noqa: E501
