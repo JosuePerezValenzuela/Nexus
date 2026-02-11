@@ -141,7 +141,7 @@ class KnowledgeService:
         query: str,
         k: int = 5,
         context_summary: str | None = None,
-        score_threshold: float = 0.60,
+        score_threshold: float = 0.10,
     ) -> list[KnowledgeBase]:
         """
         Busqueda en 2 pasos:

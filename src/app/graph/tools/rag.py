@@ -28,6 +28,7 @@ async def search_knowledge_base(query: str, patient_context: str | None = None) 
     Herramienta de Busqueda Vectorial (RAG) con Inteligencia Contextual.
     Usala para verificar guias medicas, protocolos, valores normales/anormales,
     criterios de diagnostico, cosas relacionadas a medicina.
+    Si tienes contexto del paciente pasalo por 'patient_context'.
     """
 
     # Abrimos sesion efimera
@@ -39,7 +40,11 @@ async def search_knowledge_base(query: str, patient_context: str | None = None) 
             )
 
             if not results:
-                return "No se encontro informacion relevante en las guias medicas."
+                return (
+                    "SISTEMA: No se encontro informacion relevante en la base de conocimientos con esos terminos.\n"  # noqa: E501
+                    "INSTRUCCION PARA EL AGENTE: NO VUELVAS A BUSCAR."
+                    "Detente inmediatamente y responde al supervisor que 'No hay informacion en los documentos'"  # noqa: E501
+                )
 
             # FORMATO DE SALIDA
             # Preparacion de un string claro para que el LLM lo consuma.
@@ -52,16 +57,13 @@ async def search_knowledge_base(query: str, patient_context: str | None = None) 
                 # Extraemos metadatos
                 source = getattr(result, "source", "Desconocido")
                 title = getattr(result, "title", "Documento")
-
-                # Obtenemos el SCRORE del RERANKER
-                meta = getattr(result, "metadata", {}) or {}
-                score = meta.get("relevance_score", 0.0)
+                content = getattr(result, "content", "").strip()
 
                 response_text += (
-                    f" [Doc {i}] {title}\n"
-                    f" Relevancia: {score:.2f} | Fuente: {source}\n"
-                    f" CONTENIDO:\n{result.content.strip()}\n"
-                    f"--- Fin del fragmento ---\n\n"
+                    f"\n[Doc {i}] {title}\n"
+                    f"Fuente: {source}\n"
+                    f"CONTENIDO:\n{content}\n"
+                    f"--- Fin del fragmento ---\n"
                 )
 
             return response_text
