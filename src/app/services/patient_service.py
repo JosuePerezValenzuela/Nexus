@@ -1,5 +1,6 @@
 from datetime import date
 
+from sqlalchemy.orm import selectinload
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -23,16 +24,25 @@ class PatientService:
         """
         # Busqueda por id
         if patient_id:
-            patient = await session.get(Patient, patient_id)
-            if not patient:
-                return f" Error: No existe ningun paciente con el ID {patient_id}."
-            return self._generate_full_report(patient)
+            statement = (
+                select(Patient)
+                .where(Patient.id == patient_id)
+                .options(selectinload(Patient.records))  # type: ignore
+            )
+            result = await session.exec(statement)
+            patient = result.first()
+
+            if not patient and not name_query:
+                return f"Error: No existe ningun paciente con el ID {patient_id}"
+
+            return self._generate_full_report(patient)  # type: ignore
 
         # 1. Busqueda en Base de datos por nombre
         if name_query:
             statement = select(Patient).where(
-                col(Patient.full_name).ilike(f"%{name_query}%")
+                col(Patient.full_name).ilike(f"%{name_query}")
             )
+
             result = await session.exec(statement)
             results = result.all()
 
