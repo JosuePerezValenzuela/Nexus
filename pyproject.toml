@@ -22,6 +22,7 @@ dependencies = [
     "scalar-fastapi>=1.5.0",
     "sentence-transformers>=5.2.0",
     "sqlmodel>=0.0.27",
+    "streamlit>=1.54.0",
 ]
 
 [dependency-groups]
