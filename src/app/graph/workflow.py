@@ -4,6 +4,7 @@ from langchain_core.messages import BaseMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph  # type: ignore
 from langgraph.prebuilt import create_react_agent  # type: ignore
 
+from app.graph.nodes.specialist import specialist_node
 from app.graph.nodes.supervisor import supervisor_node
 from app.graph.prompt import MEDICAL_AGENT_PROMPT, PATIENT_WORKER_PROMPT
 from app.graph.state import AgentState
@@ -62,8 +63,6 @@ def route_supervisor(
 
     # Si devuelve DOCS_AGENT o DATA_AGENT
     return next_node  # type: ignore
-    # El ignore aquí es leve: Python no sabe si next_node es exactamente uno de los
-    # literals, pero nosotros validamos la lógica en el nodo supervisor.
 
 
 # --- CONSTRUCCION DEL GRAFO PRINCIPAL ---
@@ -75,6 +74,7 @@ workflow = StateGraph(AgentState)
 workflow.add_node("supervisor", supervisor_node)  # type: ignore
 workflow.add_node("DOCS_AGENT", call_docs_agent)  # type: ignore
 workflow.add_node("DATA_AGENT", call_data_agent)  # type: ignore
+workflow.add_node("specialist", specialist_node)  # type: ignore
 
 # Definimos el flujo (Edges)
 
@@ -85,12 +85,14 @@ workflow.add_edge(START, "supervisor")
 workflow.add_conditional_edges(
     "supervisor",
     route_supervisor,
-    {"DOCS_AGENT": "DOCS_AGENT", "DATA_AGENT": "DATA_AGENT", "FINISH": END},
+    {"DOCS_AGENT": "DOCS_AGENT", "DATA_AGENT": "DATA_AGENT", "FINISH": "specialist"},
 )
 
 # El ciclo de retorno: Los workers SIEMPRE reportan de vuelta al supervisor
 workflow.add_edge("DOCS_AGENT", "supervisor")
 workflow.add_edge("DATA_AGENT", "supervisor")
+
+workflow.add_edge("specialist", END)
 
 # Compilacion
 graph = workflow.compile()  # type: ignore
