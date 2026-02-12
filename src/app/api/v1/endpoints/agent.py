@@ -1,10 +1,11 @@
 import logging
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 
+from app.core.limiter import limiter
 from app.graph.workflow import graph
 
 logger = logging.getLogger(__name__)
@@ -21,16 +22,17 @@ class ChatResponse(BaseModel):
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat_with_agente(request: ChatRequest):
+@limiter.limit("7/hour; 10/day")  # type: ignore
+async def chat_with_agente(request: Request, body: ChatRequest):
     """
     Endpoint para conversar con el Workflow principal.
     """
     try:
-        logger.info(f" Recibido mensaje: '{request.message}'")
+        logger.info(f" Recibido mensaje: '{body.message}'")
 
         # Preparamos el input para el grafo
         # LangGraph espera un estado inicial.
-        inputs = {"messages": [HumanMessage(content=request.message)]}
+        inputs = {"messages": [HumanMessage(content=body.message)]}
 
         # Ejecucion asincrona
         result: dict[str, Any] = await graph.ainvoke(inputs)  # type: ignore
