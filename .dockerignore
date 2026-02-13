@@ -1,0 +1,15 @@
+.git
+.venv/
+.devcontainer/
+.claude/
+.ruff_cache/
+.vscode/
+opt/
+__pycache__
+*.pyc
+.env
+.env.production
+docker-compose.yml
+backup.sql
+README.md
+tests/
