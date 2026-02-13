@@ -31,3 +31,5 @@ wheels/
 
 # Claude
 .claude/
+
+backup.sql
