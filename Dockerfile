@@ -30,6 +30,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 # Copiamos el codigo
 COPY src ./src
 
+RUN touch README.md
+
 # Syncronizacion
 RUN uv sync --frozen --no-dev
 
