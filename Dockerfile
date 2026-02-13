@@ -10,16 +10,22 @@ ENV PYTHONUNBUFFERED=1
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 
-# Establecemos directorio de trabajo
-WORKDIR /app
-
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev\
     && rm -rf /var/lib/apt/lists/*
 
+# Creacion de usuario seguro
+RUN useradd -m appuser
+
+# Establecemos directorio de trabajo
+RUN mkdir /app && chown appuser /app
+WORKDIR /app
+
+USER appuser
+
 # Copiamos los archivos de las librerias
-COPY pyproject.toml uv.lock ./
+COPY --chown=appuser:appuser pyproject.toml uv.lock ./
 
 # Instalamos las dependencias
 # Con frozen
@@ -28,7 +34,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 # Copiamos el codigo
-COPY src ./src
+COPY --chown=appuser:appuser src ./src
 
 RUN touch README.md
 
@@ -38,9 +44,5 @@ RUN uv sync --frozen --no-dev
 # Agregamos el entorno virtual de uv al PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Creacion de usuario seguro
-RUN useradd -m appuser && chown -R appuser /app
-USER appuser
-
 # Ejecutamos
-CMD ["uvicorn", "src.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD uvicorn src.app.main:app --host 0.0.0.0 --port ${PORT:-8000}
