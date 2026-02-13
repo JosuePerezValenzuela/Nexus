@@ -1,3 +1,12 @@
+---
+title: Medical AI Multi-Agent System
+emoji: 🏥
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+---
+
 # 🏥 Nexus Health AI: Clinical Multi-Agent System
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)](https://www.python.org/)
