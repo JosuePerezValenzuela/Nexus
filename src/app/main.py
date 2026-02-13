@@ -78,12 +78,10 @@ app.include_router(api_router, prefix="/api/v1")
 
 
 # --- Health cheack ---
-@app.get("/", tags=["Health"])
+@app.get("/health", tags=["Health"])
 async def root() -> dict[str, str]:
     return {
-        "project": settings.PROJECT_NAME,
-        "version": settings.VERSION,
-        "environment": settings.ENVIRONMENT,
+        "status": "ok",
     }
 
 
