@@ -11,8 +11,12 @@ load_dotenv()
 st.set_page_config(page_title="Nexus Health", page_icon="🏥", layout="centered")
 
 # URL del Backend
-BACKEND_URL = os.getenv("API_URL", "http://localhost:8000/api/v1/agent/chat")
-MODEL_NAME = os.getenv("LLM_MODEL_NAME", "llama-3.1-8b-instant")
+BACKEND_URL = st.secrets.get(
+    "API_URL", os.getenv("API_URL", "http://localhost:8000/api/v1/agent/chat")
+)
+MODEL_NAME = st.secrets.get(
+    "LLM_MODEL_NAME", os.getenv("LLM_MODEL_NAME", "llama-3.1-8b-instant")
+)
 
 st.title("🏥 Nexus Health AI")
 st.caption(f"Modelo activo: {MODEL_NAME}")
@@ -49,13 +53,13 @@ if prompt := st.chat_input("Escribe tu consulta clinica..."):
         with st.spinner("Consultando especialistas..."):
             try:
                 # Payload
-                payload = {
+                payload = {  # type: ignore
                     "message": prompt,
                     "thread_id": "demo_session",
                     "model": MODEL_NAME,
                 }
 
-                response = requests.post(BACKEND_URL, json=payload)
+                response = requests.post(BACKEND_URL, json=payload)  # type: ignore
 
                 if response.status_code == 200:
                     data = response.json()
