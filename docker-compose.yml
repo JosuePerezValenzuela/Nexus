@@ -16,7 +16,7 @@ services:
 
     volumes:
       # A. Sincronizacion del codigo
-      - .:/workspaces/Nexus:cached
+      - .:/workspaces/Nexus
 
       # B. Aislamiento del .venv
       - backend-venv:/workspaces/Nexus/.venv

@@ -42,6 +42,7 @@ Regla de oro: evitar mezclar responsabilidades entre capas.
 Antes de abrir PR, correr al menos:
 - `uv run ruff check .`
 - `uv run ruff format --check .`
+- `uv run pyright`
 
 Si agregas tests:
 - `uv run pytest`
@@ -83,6 +84,7 @@ Si agregas tests:
 
 ## 8) Checklist minimo antes de merge
 - [ ] Ruff check/format en verde.
+- [ ] `uv run pyright` sin errores.
 - [ ] Sin secretos en diff.
 - [ ] Logs y manejo de errores razonables.
 - [ ] Contratos API consistentes (schemas + endpoints).
