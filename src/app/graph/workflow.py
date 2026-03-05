@@ -4,6 +4,7 @@ from langchain_core.messages import BaseMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph  # type: ignore
 from langgraph.prebuilt import create_react_agent  # type: ignore
 
+from app.graph.nodes.safety_gate import safety_gate_node
 from app.graph.nodes.specialist import specialist_node
 from app.graph.nodes.supervisor import supervisor_node
 from app.graph.prompt import MEDICAL_AGENT_PROMPT, PATIENT_WORKER_PROMPT
@@ -75,6 +76,7 @@ workflow.add_node("supervisor", supervisor_node)  # type: ignore
 workflow.add_node("DOCS_AGENT", call_docs_agent)  # type: ignore
 workflow.add_node("DATA_AGENT", call_data_agent)  # type: ignore
 workflow.add_node("specialist", specialist_node)  # type: ignore
+workflow.add_node("safety_gate", safety_gate_node)  # type: ignore
 
 # Definimos el flujo (Edges)
 
@@ -92,7 +94,8 @@ workflow.add_conditional_edges(
 workflow.add_edge("DOCS_AGENT", "supervisor")
 workflow.add_edge("DATA_AGENT", "supervisor")
 
-workflow.add_edge("specialist", END)
+workflow.add_edge("specialist", "safety_gate")
+workflow.add_edge("safety_gate", END)
 
 # Compilacion
 graph = workflow.compile()  # type: ignore

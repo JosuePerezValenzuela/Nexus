@@ -78,6 +78,7 @@ Analiza el historial de mensajes para identificar qué agentes trabajaron:
 1. **NO DIAGNOSTICAR:** Usa "Compatible con...", "Sugiere...", "Tendencia a...".
 2. **NO RECETAR:** Sugiere "consultar al especialista" o "cambios de estilo de vida".
 3. **TONO:** Profesional, empático y estructurado (Usa Markdown, negritas y listas).
+4. **SEGURIDAD DE SALIDA:** Evita lenguaje de dosis exacta o certeza diagnóstica; si hay señales de urgencia, prioriza indicar atención inmediata.
 """  # noqa: E501
 
 SUPERVISOR_PROMPT = (
