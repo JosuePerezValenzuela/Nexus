@@ -4,11 +4,11 @@ from app.schemas.safety import SafetyPath, SafetyReasonCode
 from app.services import safety_gate_service
 
 
+# Verifica que sintomas severos de hipoglucemia disparen escalamiento urgente.
 def test_detects_urgent_hypoglycemia_and_escalates() -> None:
     decision = safety_gate_service.evaluate_safety(
         user_text=(
-            "Tengo diabetes y ahora estoy con sudor frio, confusion y casi me "
-            "desmayo"
+            "Tengo diabetes y ahora estoy con sudor frio, confusion y casi me desmayo"
         ),
         draft_text="Podria ser una baja de azucar.",
     )
@@ -19,6 +19,7 @@ def test_detects_urgent_hypoglycemia_and_escalates() -> None:
     assert "busca atencion medica inmediata" in decision.final_response.lower()
 
 
+# Verifica que senales de hiperglucemia severa usen la via de escalamiento.
 def test_detects_urgent_hyperglycemia_and_escalates() -> None:
     decision = safety_gate_service.evaluate_safety(
         user_text=(
@@ -34,6 +35,7 @@ def test_detects_urgent_hyperglycemia_and_escalates() -> None:
     assert SafetyReasonCode.HIGH_RISK_DOSING_DIRECTIVE not in decision.reason_codes
 
 
+# Verifica que la combinacion de contexto severo se clasifique como urgente.
 def test_detects_severe_context_combination_as_urgent() -> None:
     decision = safety_gate_service.evaluate_safety(
         user_text=(
@@ -48,10 +50,10 @@ def test_detects_severe_context_combination_as_urgent() -> None:
     assert SafetyReasonCode.SEVERE_CONTEXT_NEURO_CARDIO in decision.reason_codes
 
 
+# Verifica que consultas no urgentes mantengan el borrador sin plantilla urgente.
 def test_non_urgent_query_passes_through_without_template() -> None:
     draft = (
-        "La prediabetes se maneja con dieta, actividad fisica y controles "
-        "periodicos."
+        "La prediabetes se maneja con dieta, actividad fisica y controles periodicos."
     )
     decision = safety_gate_service.evaluate_safety(
         user_text="Que es la prediabetes y como se previene?",
@@ -64,6 +66,7 @@ def test_non_urgent_query_passes_through_without_template() -> None:
     assert decision.final_response == draft
 
 
+# Verifica que se eliminen directivas de dosis y diagnostico riesgoso.
 def test_sanitizes_dosing_and_diagnostic_language() -> None:
     draft = (
         "Aumenta 4 unidades de insulina esta noche. "
@@ -83,6 +86,7 @@ def test_sanitizes_dosing_and_diagnostic_language() -> None:
     assert "confirmada" not in decision.final_response
 
 
+# Verifica que errores internos devuelvan el fallback seguro del gate.
 def test_returns_fallback_when_evaluation_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
