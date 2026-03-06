@@ -1,27 +1,31 @@
 import logging
-from typing import Any
+from typing import Any, TypedDict, cast
 
 from fastapi import APIRouter, HTTPException, Request
 from langchain_core.messages import HumanMessage
-from pydantic import BaseModel
 
+from app.core.config import settings
 from app.core.limiter import limiter
 from app.graph.workflow import graph
+from app.schemas.chat import ChatRequest, ChatResponse, ChatSafetyMeta
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-class ChatRequest(BaseModel):
-    message: str
+class GraphResult(TypedDict, total=False):
+    messages: list[Any]
+    safety_meta: dict[str, object]
 
 
-class ChatResponse(BaseModel):
-    response: str
+def _safe_content(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    return str(content)
 
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post("/chat", response_model=ChatResponse, response_model_exclude_none=True)
 @limiter.limit("7/hour; 10/day")  # type: ignore
 async def chat_with_agente(request: Request, body: ChatRequest):
     """
@@ -35,7 +39,8 @@ async def chat_with_agente(request: Request, body: ChatRequest):
         inputs = {"messages": [HumanMessage(content=body.message)]}
 
         # Ejecucion asincrona
-        result: dict[str, Any] = await graph.ainvoke(inputs)  # type: ignore
+        raw_result = await graph.ainvoke(inputs)  # type: ignore
+        result = cast(GraphResult, raw_result)
 
         # 2. Extraemos el ultimo mensaje (La respuesta final del asistente)
         messages = result.get("messages", [])
@@ -45,9 +50,16 @@ async def chat_with_agente(request: Request, body: ChatRequest):
 
         last_message = messages[-1]
 
-        logger.info(f"Respuesta generada: {last_message.content[:50]}....")
+        response_text = _safe_content(last_message.content)
+        logger.info(f"Respuesta generada: {response_text[:50]}....")
 
-        return ChatResponse(response=last_message.content)
+        response = ChatResponse(response=response_text)
+        if settings.SAFETY_GATE_ENABLED and settings.SAFETY_GATE_EXPOSE_METADATA:
+            safety_meta = result.get("safety_meta")
+            if isinstance(safety_meta, dict):
+                response.safety = ChatSafetyMeta.model_validate(safety_meta)
+
+        return response
 
     except Exception as e:
         logger.error(f"Error critico en endpoint /chat: {str(e)}", exc_info=True)

@@ -34,7 +34,7 @@ messages: list[MessageType] = cast(list[MessageType], st.session_state["messages
 # 2 Pintar mensajes anteriores
 for message in messages:
     role = message.get("role", "assistant")
-    content = message.get("contetn", "")
+    content = message.get("content", "")
 
     with st.chat_message(role):
         st.markdown(content)

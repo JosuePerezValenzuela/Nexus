@@ -1,7 +1,7 @@
 from functools import lru_cache  # FastAPI Way, crea la config una vez y la reutiliza
 from typing import Literal
 
-from pydantic import PostgresDsn, computed_field
+from pydantic import PostgresDsn, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -49,7 +49,22 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: list[str] = []
 
     # Entorno
-    ENVIRONMENT: Literal["local", "staging", "production"] = "local"
+    ENVIRONMENT: Literal["local", "test", "staging", "production"] = "local"
+
+    # Safety gate
+    SAFETY_GATE_ENABLED: bool = False
+    SAFETY_GATE_STRICT_MODE: bool = True
+    SAFETY_GATE_MAX_REASON_CODES: int = 5
+    SAFETY_GATE_EXPOSE_METADATA: bool = False
+
+    @model_validator(mode="after")
+    def set_test_safety_defaults(self) -> "Settings":
+        if (
+            self.ENVIRONMENT == "test"
+            and "SAFETY_GATE_ENABLED" not in self.model_fields_set
+        ):
+            self.SAFETY_GATE_ENABLED = True  # type: ignore
+        return self
 
     # Configuracion de Pydantic para leer el .env
     model_config = SettingsConfigDict(

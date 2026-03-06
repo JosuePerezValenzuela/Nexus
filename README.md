@@ -88,12 +88,14 @@ graph TD
     DataAgent --> Specialist
     DocsAgent --> Specialist
     
-    Specialist -->|Evidence-Based Response| User
+    Specialist --> SafetyGate[🛡️ Safety Gate]
+    SafetyGate -->|Safe Final Response| User
     
     style Supervisor fill:#FF6B6B
     style DataAgent fill:#4ECDC4
     style DocsAgent fill:#95E1D3
     style Specialist fill:#F38181
+    style SafetyGate fill:#F9C74F
 ```
 
 🤖 Agent Roles
@@ -181,6 +183,10 @@ Seamlessly combines:
 ![API Schemas](docs/screenshots/schemas_docs.jpeg)
 *Pydantic schemas for request/response validation*
 
+### Safety Gate (diabetes/prediabetes)
+- Guia operativa: [docs/safety-gate-v1.md](docs/safety-gate-v1.md)
+- Runbook (config, monitoreo, rollout/rollback): [docs/safety-gate-runbook.md](docs/safety-gate-runbook.md)
+
 ---
 
 ## ⚡ Quick Start
@@ -209,7 +215,19 @@ VLLM_API_KEY=
 LLM_MODEL_NAME=
 
 environment=
+
+# Safety gate (diabetes/prediabetes)
+SAFETY_GATE_ENABLED=false
+SAFETY_GATE_STRICT_MODE=true
+SAFETY_GATE_MAX_REASON_CODES=5
+SAFETY_GATE_EXPOSE_METADATA=false
 ```
+
+### Safety gate quickstart
+
+- Habilitar: setea `SAFETY_GATE_ENABLED=true` y reinicia el backend.
+- Deshabilitar: setea `SAFETY_GATE_ENABLED=false` y reinicia el backend.
+- Verificacion rapida: revisa logs de `safety_gate_decision` y counters de safety gate.
 
 ### 3️⃣ Start Services
 ```bash

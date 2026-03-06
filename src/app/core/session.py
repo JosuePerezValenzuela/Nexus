@@ -53,8 +53,10 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def create_db_and_tables() -> None:
     """Crea las tablas en la BD"""
     from app.db.init_data import init_db
-    from app.models.knowledge import KnowledgeBase  # noqa: F401
-    from app.models.patient import Patient  # noqa: F401
+    from app.models import knowledge as knowledge_models
+    from app.models import patient as patient_models
+
+    _ = (knowledge_models.KnowledgeBase, patient_models.Patient)
 
     # Esto es codigo SQL puro que indica activar pgvector
     async with engine.begin() as conn:

@@ -23,5 +23,5 @@
     }
   },
   "remoteUser": "vscode",
-  "postCreateCommand": "uv sync" // Se ejecutará al crear el contenedor
+  "postCreateCommand": "uv sync --group dev" // Se ejecutará al crear el contenedor
 }

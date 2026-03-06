@@ -12,11 +12,14 @@ services:
       context: .
       dockerfile: .devcontainer/Dockerfile
 
+    ports:
+      - "8000:8000"
+
     command: sleep infinity
 
     volumes:
       # A. Sincronizacion del codigo
-      - .:/workspaces/Nexus:cached
+      - .:/workspaces/Nexus
 
       # B. Aislamiento del .venv
       - backend-venv:/workspaces/Nexus/.venv

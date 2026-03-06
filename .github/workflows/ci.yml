@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+    branches: ["master"]
+  push:
+    branches: ["master", "feature/**"]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    env:
+      ENVIRONMENT: test
+      POSTGRES_SERVER: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ci_user
+      POSTGRES_PASSWORD: ci_password
+      POSTGRES_DB: ci_db
+      HF_TOKEN: ci_dummy_hf_token
+      LLM_HOST: http://localhost:8000
+      VLLM_API_KEY: ci_dummy_vllm_key
+      LLM_MODEL_NAME: ci-model
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      - name: Sync dependencies
+        run: uv sync --group dev
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Pyright type check
+        run: uv run pyright
+
+      - name: Pytest
+        run: uv run pytest
