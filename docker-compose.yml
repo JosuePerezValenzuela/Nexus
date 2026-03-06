@@ -12,6 +12,9 @@ services:
       context: .
       dockerfile: .devcontainer/Dockerfile
 
+    ports:
+      - "8000:8000"
+
     command: sleep infinity
 
     volumes:
