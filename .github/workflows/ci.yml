@@ -9,6 +9,17 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    env:
+      ENVIRONMENT: test
+      POSTGRES_SERVER: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ci_user
+      POSTGRES_PASSWORD: ci_password
+      POSTGRES_DB: ci_db
+      HF_TOKEN: ci_dummy_hf_token
+      LLM_HOST: http://localhost:8000
+      VLLM_API_KEY: ci_dummy_vllm_key
+      LLM_MODEL_NAME: ci-model
 
     steps:
       - name: Checkout repository
@@ -21,6 +32,14 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v3
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
 
       - name: Sync dependencies
         run: uv sync --group dev
