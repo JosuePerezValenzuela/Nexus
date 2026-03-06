@@ -19,9 +19,13 @@ class SafetyReasonCode(StrEnum):
     SAFETY_GATE_ERROR = "safety_gate_error"
 
 
+def _default_reason_codes() -> list[SafetyReasonCode]:
+    return []
+
+
 class SafetyDecision(BaseModel):
     path: SafetyPath
-    reason_codes: list[SafetyReasonCode] = Field(default_factory=list)
+    reason_codes: list[SafetyReasonCode] = Field(default_factory=_default_reason_codes)
     final_response: str
     escalated: bool = False
     sanitized: bool = False

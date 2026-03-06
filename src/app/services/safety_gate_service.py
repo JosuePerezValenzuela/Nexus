@@ -220,10 +220,7 @@ def _sanitize_directives(draft_text: str) -> str:
         )
 
     safe_body = " ".join(safe_sentences).strip()
-    return (
-        "No puedo indicar dosis exactas ni confirmar diagnosticos. "
-        f"{safe_body}"
-    )
+    return f"No puedo indicar dosis exactas ni confirmar diagnosticos. {safe_body}"
 
 
 def _build_fallback_decision() -> SafetyDecision:
